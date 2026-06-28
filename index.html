@@ -1,0 +1,2737 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super App Financiera - Gonzalo Campana</title>
+    <!-- Tailwind CSS para diseño rápido y moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para gráficos avanzados de última generación -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse para procesamiento rápido e infalible de CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Google Font: Outfit para un look súper moderno y premium -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #060913;
+        }
+        /* Glassmorphism premium styling */
+        .glass-panel {
+            background: rgba(14, 20, 36, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-panel-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-panel-hover:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #060913;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6;
+        }
+        /* Input overrides */
+        input[type="range"]::-webkit-slider-thumb {
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="text-slate-100 antialiased selection:bg-blue-500 selection:text-slate-900 min-h-screen flex flex-col">
+
+    <!-- Navbar / Encabezado Principal -->
+    <header class="glass-panel border-b border-slate-800/80 sticky top-0 z-40 bg-opacity-95 backdrop-blur-md">
+        <div class="max-w-[1600px] mx-auto py-4 px-4 sm:px-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <!-- Título y Estado -->
+            <div>
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        Super App v2.0
+                    </span>
+                    <span id="title-year-badge" class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        Libro Diario 2026
+                    </span>
+                    <span id="sync-status" class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        Cargando Datos...
+                    </span>
+                </div>
+                <h1 class="text-2xl font-black text-white flex items-center gap-2 tracking-tight">
+                    <svg class="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Cockpit Financiero Personal
+                </h1>
+                <p class="text-slate-400 text-xs mt-0.5">Control absoluto en tiempo real mediante importación de archivos CSV</p>
+            </div>
+ 
+            <!-- Controles de Datos e Integración -->
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <!-- Selector de Mes -->
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Mes de Visualización</label>
+                    <select id="month-selector" class="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-blue-500 min-w-[150px]">
+                        <!-- Se poblará dinámicamente -->
+                    </select>
+                </div>
+ 
+                <!-- Botones de Acción -->
+                <div class="flex items-end gap-2 w-full sm:w-auto pt-4 sm:pt-0">
+                    <button id="btn-sync" class="flex-1 sm:flex-initial bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5 min-h-[38px]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Cargar CSV
+                    </button>
+                    
+                    <button id="btn-config" class="bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3.5 rounded-xl transition-all min-h-[38px] flex items-center justify-center" title="Configurar Ajustes Cambiarios">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Cajón lateral de Configuración de Datos (Settings Drawer) -->
+    <div id="config-drawer" class="fixed inset-0 bg-black/60 z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex justify-end">
+        <div class="w-full max-w-md bg-[#0a0f1d] border-l border-slate-800 h-full p-6 flex flex-col justify-between shadow-2xl transition-transform duration-300 translate-x-full">
+            <div>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-black text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                        Orígenes y Ajustes
+                    </h3>
+                    <button id="btn-close-config" class="text-slate-400 hover:text-white transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-6">
+                    <!-- Selector Manual de Archivo CSV -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Carga Manual de CSV</label>
+                        <div id="dropzone" class="border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-xl p-6 text-center cursor-pointer transition-all bg-slate-900/40">
+                            <input id="input-csv-file" type="file" accept=".csv" class="hidden">
+                            <svg class="w-8 h-8 text-slate-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            <p class="text-xs text-slate-300 font-bold">Arrastra tu archivo CSV aquí</p>
+                            <p class="text-[10px] text-slate-500 mt-1">O haz clic para buscar en tu ordenador</p>
+                        </div>
+                    </div>
+
+                    <!-- Separador decorativo -->
+                    <div class="border-t border-slate-800/80 my-4"></div>
+
+                    <!-- Sincronización Google Sheets -->
+                    <div class="space-y-2 bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Vincular con Google Sheets (En Línea)</label>
+                        <p class="text-[10px] text-slate-500 leading-normal mb-2">Pega la URL de publicación en la Web en formato CSV de tu planilla de Google Sheets:</p>
+                        <div class="space-y-2">
+                            <input id="input-sheet-url" type="text" class="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-[10px] font-medium text-white focus:outline-none focus:border-blue-500" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+                            <button id="btn-sync-online" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2M4 9h5v5"></path></svg>
+                                Sincronizar En Línea
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Separador decorativo -->
+                    <div class="border-t border-slate-800/80 my-4"></div>
+
+                    <!-- Ajustes Cambiarios y Tributarios -->
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-black text-slate-300 uppercase tracking-wider">Ajustes de Conversión USD</h4>
+                        
+                        <!-- Cotización USD -->
+                        <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-slate-800/60">
+                            <div>
+                                <label class="text-xs font-bold text-slate-300">Tipo de Cambio Tarjeta</label>
+                                <p class="text-[10px] text-slate-500">ARS por 1 USD</p>
+                            </div>
+                            <input id="input-usd-rate" type="number" value="1425" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1.5 w-24 text-right text-xs font-extrabold text-white focus:outline-none focus:border-blue-500">
+                        </div>
+
+                        <!-- Recargo Impuestos -->
+                        <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-slate-800/60">
+                            <div>
+                                <label class="text-xs font-bold text-slate-300">Impuestos a USD</label>
+                                <p class="text-[10px] text-slate-500">PAIS + Ganancias/RG</p>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <input id="input-usd-tax" type="number" value="50" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1.5 w-16 text-right text-xs font-extrabold text-white focus:outline-none focus:border-blue-500">
+                                <span class="text-xs font-bold text-slate-400">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-4">
+                <button id="btn-save-config" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg shadow-blue-500/10 transition-all">
+                    Aplicar Cambios
+                </button>
+                <button id="btn-reset-cache" class="w-full bg-slate-900 border border-red-500/20 hover:bg-red-500/10 text-red-400 font-bold text-xs py-2 rounded-xl transition-all">
+                    Restablecer Datos de Simulación
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor Principal del Dashboard -->
+    <main class="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto space-y-6">
+
+        <!-- Fila de KPIs (Indicadores Clave de Rendimiento) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            <!-- KPI 1: Ingresos Totales -->
+            <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-[#0e1424] to-emerald-950/15">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Ingresos del Mes</h3>
+                    <span class="text-emerald-400 bg-emerald-500/10 p-1.5 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    </span>
+                </div>
+                <p id="kpi-ingresos" class="text-2xl sm:text-3xl font-black text-white mt-2">$0,00</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex justify-between">
+                    <span>Sueldo + Extras:</span>
+                    <span id="kpi-ingresos-detail" class="text-slate-200 font-medium">$0,00</span>
+                </div>
+            </div>
+
+            <!-- KPI 2: Egresos del Mes -->
+            <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-[#0e1424] to-rose-950/15">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Egresos Totales</h3>
+                    <span class="text-rose-400 bg-rose-500/10 p-1.5 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </span>
+                </div>
+                <p id="kpi-egresos" class="text-2xl sm:text-3xl font-black text-white mt-2">$0,00</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex justify-between">
+                    <span>Compromisos Fijos + Variables:</span>
+                    <span id="kpi-egresos-detail" class="text-slate-200 font-medium">Cuotas + Subs + Préstamos</span>
+                </div>
+            </div>
+
+            <!-- KPI 3: Superávit de Ahorro -->
+            <div id="kpi-superavit-card" class="glass-panel rounded-2xl p-5 relative overflow-hidden transition-all duration-300">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Superávit Libre (Ahorro)</h3>
+                    <span id="kpi-superavit-icon-container" class="p-1.5 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </span>
+                </div>
+                <p id="kpi-superavit" class="text-2xl sm:text-3xl font-black mt-2">$0,00</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex justify-between">
+                    <span>Tasa de Ahorro Real:</span>
+                    <span id="kpi-superavit-pct" class="text-slate-200 font-bold">0% del sueldo</span>
+                </div>
+            </div>
+
+            <!-- KPI 4: Consumo Dolarizado -->
+            <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-[#0e1424] to-sky-950/15">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Gastos en USD (Tarjeta)</h3>
+                    <span class="text-sky-400 bg-sky-500/10 p-1.5 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </span>
+                </div>
+                <p id="kpi-usd" class="text-2xl sm:text-3xl font-black text-white mt-2">USD 0,00</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex justify-between">
+                    <span>Total con Impuestos:</span>
+                    <span id="kpi-usd-ars" class="text-sky-400 font-bold">$0,00 ARS</span>
+                </div>
+            </div>
+
+            <!-- KPI 5: Pasivo Restante Estimado -->
+            <div class="glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-[#0e1424] to-indigo-950/15">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Pasivos Pendientes</h3>
+                    <span class="text-indigo-400 bg-indigo-500/10 p-1.5 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </span>
+                </div>
+                <p id="kpi-deuda" class="text-2xl sm:text-3xl font-black text-slate-200 mt-2">$0,00</p>
+                <div class="mt-2 text-[10px] text-slate-400 flex justify-between">
+                    <span>Créditos + Saldo Tarjeta:</span>
+                    <span id="kpi-deuda-detail" class="text-indigo-400 font-bold">Préstamos + Cuotas Tarjeta</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila de Alertas y Toggles de Simulación Activa -->
+        <div id="sim-alert-banner" class="hidden glass-panel border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-gradient-to-r from-[#0e1424] to-amber-950/10">
+            <div class="flex items-center gap-3">
+                <span class="bg-amber-500/20 text-amber-400 p-2 rounded-xl text-lg">⚠️</span>
+                <div>
+                    <h4 class="text-sm font-bold text-white">Modo de Simulación Activo</h4>
+                    <p class="text-xs text-slate-400">Estás visualizando datos con modificaciones simuladas (Sueldo Municipal o Suscripciones modificadas).</p>
+                </div>
+            </div>
+            <button id="btn-disable-sim" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold text-xs py-2 px-4 rounded-xl transition-all w-full sm:w-auto">
+                Desactivar Simulación
+            </button>
+        </div>
+
+        <!-- Panel de Grilla de la Aplicación -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- COLUMNA IZQUIERDA (7/12): Flujo de Caja Histórico, Simulador Municipal, Préstamos -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Gráfico de Relación Histórica (Flujo de Caja / Relación de Caja) -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                        <div>
+                            <h2 id="history-chart-title" class="text-lg font-extrabold text-white tracking-tight">Curva de Flujo de Caja Histórico (2026)</h2>
+                            <p id="history-chart-desc" class="text-slate-400 text-xs">Visualiza la relación mensual de tus ingresos cobrados contra el total de obligaciones.</p>
+                        </div>
+                        <!-- Toggles de Gráficos -->
+                        <div class="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
+                            <button id="btn-tab-cashflow" class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all text-white bg-blue-600 shadow-md">
+                                Flujo de Caja
+                            </button>
+                            <button id="btn-tab-visarel" class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                                Visa vs Sueldo
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-[280px]">
+                        <canvas id="chart-cashflow"></canvas>
+                    </div>
+                </div>
+
+                <!-- Simulador de Sueldo Municipal -->
+                <div class="glass-panel rounded-2xl p-6 bg-gradient-to-r from-[#0e1424] to-slate-900/30 relative">
+                    <div class="mb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-lg font-extrabold text-white flex items-center gap-2 tracking-tight">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                    Simulador Dinámico de Haberes Municipales
+                                </h2>
+                                <p class="text-slate-400 text-xs mt-0.5">Calcula el impacto neto en tu salario estimando horas extras y bonos.</p>
+                            </div>
+                            <!-- Switch para aplicar simulación -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Aplicar al Dashboard</span>
+                                <button id="toggle-sim-salary" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-800">
+                                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Slider Horas Extras -->
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    Horas Extras a Simular:
+                                </span>
+                                <span id="val-horas-display" class="bg-blue-500/10 text-blue-400 font-black text-sm px-3 py-1 rounded-lg border border-blue-500/25">
+                                    0 Hs.
+                                </span>
+                            </div>
+                            <input id="slider-horas" type="range" min="0" max="100" value="0" class="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            <div class="flex justify-between text-[9px] text-slate-500 mt-1 font-bold">
+                                <span>0 Hs (Salario base)</span>
+                                <span>25 Hs (Promedio)</span>
+                                <span>50 Hs</span>
+                                <span>75 Hs</span>
+                                <span>100 Hs (Máximo)</span>
+                            </div>
+                        </div>
+
+                        <!-- Checkbox Bono Ropa -->
+                        <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                            <div class="flex items-center gap-3">
+                                <input id="chk-ropa-bono" type="checkbox" class="w-5 h-5 rounded-lg accent-blue-500 cursor-pointer">
+                                <label for="chk-ropa-bono" class="text-xs font-bold text-slate-300 cursor-pointer select-none">
+                                    Incluir "Bono Especial Ropa de Trabajo" (+$131.000,00 Neto)
+                                </label>
+                            </div>
+                            <span class="text-[9px] text-slate-500 font-medium">* Libre de deducciones previsionales</span>
+                        </div>
+
+                        <!-- Desglose analítico del salario calculado -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-center">
+                            <div class="bg-[#0b0f19] p-3 rounded-xl border border-slate-800/50">
+                                <p class="text-[9px] text-slate-500 uppercase font-bold">Sueldo Básico</p>
+                                <p id="desglose-basico" class="text-xs font-black text-slate-200 mt-0.5">$0,00</p>
+                            </div>
+                            <div class="bg-[#0b0f19] p-3 rounded-xl border border-slate-800/50">
+                                <p class="text-[9px] text-slate-500 uppercase font-bold">Antigüedad (12 años)</p>
+                                <p id="desglose-antiguedad" class="text-xs font-black text-slate-200 mt-0.5">$0,00</p>
+                            </div>
+                            <div class="bg-[#0b0f19] p-3 rounded-xl border border-rose-950/20">
+                                <p class="text-[9px] text-rose-400/80 uppercase font-bold">Aportes (IPS+IOMA)</p>
+                                <p id="desglose-aportes" class="text-xs font-black text-rose-400 mt-0.5">-$0,00</p>
+                            </div>
+                            <div class="bg-[#0b0f19] p-3 rounded-xl border border-emerald-950/20">
+                                <p class="text-[9px] text-emerald-400 uppercase font-bold">Neto Simulado</p>
+                                <p id="desglose-neto" class="text-xs font-black text-emerald-400 mt-0.5">$0,00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado de Préstamos Activos (Banco Provincia) -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <div class="mb-4">
+                        <h2 class="text-lg font-extrabold text-white flex items-center gap-2 tracking-tight">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                            Créditos de Fomento y Préstamos Activos
+                        </h2>
+                        <p class="text-slate-400 text-xs">Monitoreo de la amortización y cuotas fijas deducidas automáticamente.</p>
+                    </div>
+
+                    <div id="loans-cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Se poblará dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Radar de Salud Financiera y Alertas Inteligentes [NUEVO COMPONENTE] -->
+                <div class="glass-panel rounded-2xl p-6 bg-gradient-to-r from-[#0e1424] to-slate-900/30">
+                    <div class="mb-4">
+                        <h2 class="text-lg font-extrabold text-white flex items-center gap-2 tracking-tight">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                            Radar de Salud Financiera y Alertas Inteligentes
+                        </h2>
+                        <p class="text-slate-400 text-xs">Evaluación en tiempo real de tu apalancamiento, liquidez y de tus planes de libertad de deuda.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <!-- Card 1: DTI Gauge -->
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col items-center justify-between text-center min-h-[165px]">
+                            <div>
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ratio de Endeudamiento (DTI)</h4>
+                                <p class="text-[8px] text-slate-500 mt-0.5">Deuda mensual / Ingresos netos</p>
+                            </div>
+                            <div class="relative w-20 h-20 flex items-center justify-center my-1">
+                                <svg class="w-full h-full transform -rotate-90">
+                                    <circle cx="40" cy="40" r="34" stroke="rgba(255,255,255,0.06)" stroke-width="5.5" fill="transparent" />
+                                    <circle id="dti-gauge-arc" cx="40" cy="40" r="34" stroke="#10b981" stroke-width="5.5" fill="transparent"
+                                            stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" class="transition-all duration-500" />
+                                </svg>
+                                <span id="dti-gauge-value" class="absolute text-xs font-black text-white">0%</span>
+                            </div>
+                            <span id="dti-gauge-status" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Cargando...</span>
+                        </div>
+
+                        <!-- Card 2: Colchón de Paz (Survival Buffer) -->
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between min-h-[165px]">
+                            <div class="text-center">
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Colchón de Paz Financiera</h4>
+                                <p class="text-[8px] text-slate-500 mt-0.5">Meses de gastos fijos cubiertos</p>
+                            </div>
+                            <div class="text-center my-1">
+                                <p id="buffer-months-value" class="text-2xl font-black text-indigo-400">0.0 Meses</p>
+                                <p id="buffer-status-value" class="text-[9px] font-bold text-slate-400 mt-0.5">Cargando...</p>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[8px] font-bold text-slate-500">
+                                    <span>Ahorro:</span>
+                                    <span id="slider-ahorros-display" class="text-indigo-300">$0</span>
+                                </div>
+                                <input id="slider-ahorros" type="range" min="0" max="3000000" step="100000" value="1000000" class="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Ahorro vs Objetivo (Tasa de Ahorro) -->
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between text-center min-h-[165px]">
+                            <div>
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Eficiencia de Ahorro</h4>
+                                <p class="text-[8px] text-slate-500 mt-0.5">Porcentaje de sueldo libre</p>
+                            </div>
+                            <div class="my-1">
+                                <p id="savings-rate-value" class="text-2xl font-black text-emerald-400">0%</p>
+                                <p class="text-[8px] text-slate-500 mt-0.5">Meta Recomendada: 20%</p>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden flex">
+                                    <div id="savings-rate-progress" class="h-full bg-emerald-500" style="width: 0%"></div>
+                                </div>
+                                <p id="savings-rate-status" class="text-[8px] text-slate-400 font-bold">Sin ingresos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Alertas y Diagnóstico Contable -->
+                    <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl p-4 space-y-2">
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                            Radar de Diagnóstico en Tiempo Real
+                        </h4>
+                        <div id="health-alerts-container" class="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                            <!-- Se poblará dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMNA DERECHA (5/12): Categorías Donut, Gestor de Suscripciones, Cuotas Visa, Cronograma de Pasivos -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Gráfico de Donut: Distribución de Egresos -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <h2 class="text-lg font-extrabold text-white mb-2 tracking-tight">Distribución de Gastos</h2>
+                    <p class="text-slate-400 text-xs mb-4">Desglose analítico de egresos por tipo correspondientes al mes seleccionado.</p>
+                    <div class="relative w-full h-[220px] flex items-center justify-center">
+                        <canvas id="chart-categories"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gestor de Suscripciones e Impuestos -->
+                <div class="glass-panel rounded-2xl p-6 bg-gradient-to-b from-[#0e1424] to-[#080d18]">
+                    <div class="mb-4">
+                        <h2 class="text-lg font-extrabold text-white flex items-center gap-1.5 tracking-tight">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Gestor de Suscripciones e Impuestos
+                        </h2>
+                        <p class="text-slate-400 text-xs mt-0.5">Haz clic sobre un servicio para simular su baja y ver el ahorro proyectado con impuestos.</p>
+                    </div>
+
+                    <!-- Panel de Ahorro Proyectado -->
+                    <div class="grid grid-cols-2 gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 text-center mb-4">
+                        <div class="border-r border-slate-800/60">
+                            <p class="text-[9px] text-emerald-400 uppercase font-bold tracking-wider">Ahorro de Simulación</p>
+                            <p id="ahorro-simulado-total" class="text-sm font-black text-white mt-0.5">$0,00</p>
+                            <p class="text-[8px] text-slate-500">Por bajas simuladas</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] text-sky-400 uppercase font-bold tracking-wider">Costo Activo Total</p>
+                            <p id="costo-suscripciones-total" class="text-sm font-black text-white mt-0.5">$0,00</p>
+                            <p class="text-[8px] text-slate-500">Suscripciones vigentes</p>
+                        </div>
+                    </div>
+
+                    <!-- Listado dinámico de servicios -->
+                    <div id="subs-list-container" class="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                        <!-- Carga dinámica -->
+                    </div>
+
+                    <!-- Botón para ver las bajas reales históricas -->
+                    <button id="btn-toggle-bajas-reales" class="w-full mt-3 bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 py-2 rounded-xl hover:text-white transition-all hover:bg-slate-800">
+                        Mostrar suscripciones de baja real histórica
+                    </button>
+                </div>
+
+                <!-- Amortización de Tarjeta Visa Activa -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <div class="mb-4">
+                        <h2 class="text-lg font-extrabold text-white flex items-center gap-1.5 tracking-tight">
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+                            Consumos de Tarjeta y Cuotas Activas
+                        </h2>
+                        <p class="text-slate-400 text-xs">Plan y cuotas de amortización del mes seleccionado.</p>
+                    </div>
+
+                    <div id="cuotas-list-container" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        <!-- Se poblará dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Proyección de Deuda Futura -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <div class="mb-3">
+                        <h2 class="text-lg font-extrabold text-white tracking-tight">Cronograma de Egresos Programados (Visa + Préstamos)</h2>
+                        <p class="text-slate-400 text-xs">Evolución de egresos obligatorios proyectados hasta fin de año.</p>
+                    </div>
+                    <div class="relative w-full h-[180px]">
+                        <canvas id="chart-projection"></canvas>
+                    </div>
+                    <p class="text-[9.5px] text-slate-500 text-center mt-2 font-bold leading-normal">
+                        * Muestra el gran alivio de caja conforme se extinguen las cuotas comerciales de la tarjeta.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Tabla de Registros Detallados (Libro Diario del Mes) -->
+        <div class="glass-panel rounded-2xl p-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-lg font-extrabold text-white tracking-tight">Libro Diario de Transacciones</h2>
+                    <p class="text-slate-400 text-xs mt-0.5">Listado detallado de todas las partidas contables cargadas para el periodo seleccionado.</p>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <input id="input-search-table" type="text" placeholder="Buscar registro..." class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800/80">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase font-black tracking-wider text-[10px]">
+                            <th class="p-3.5">Categoría</th>
+                            <th class="p-3.5">Detalle / Comercio</th>
+                            <th class="p-3.5 text-center">Cuotas</th>
+                            <th class="p-3.5 text-right">Debe ARS</th>
+                            <th class="p-3.5 text-right">Haber ARS</th>
+                            <th class="p-3.5 text-right">Debe USD</th>
+                            <th class="p-3.5 text-right">Haber USD</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-transactions-body" class="divide-y divide-slate-800/60 bg-[#0e1424]/40">
+                        <!-- Se poblará dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Pie de página -->
+    <footer class="glass-panel border-t border-slate-800/80 py-5 px-6 text-center text-xs text-slate-500 mt-12">
+        <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <p>© <span id="footer-year">2026</span> Cockpit Inteligente de Finanzas Personales - Gonzalo Daniel Campana.</p>
+            <span class="bg-slate-950 border border-slate-800 text-[10px] px-3 py-1 rounded-lg text-slate-400 font-bold uppercase tracking-wider">
+                Trenque Lauquen - Buenos Aires
+            </span>
+        </div>
+    </footer>
+
+    <!-- Lógica de Control del Dashboard (JavaScript) -->
+    <script>
+        // --- 1. CONFIGURACIÓN Y ESTADO DE LA APP ---
+        
+        // Normalización de texto y eliminación de acentos/espacios/caracteres especiales
+        const cleanStr = (s) => (s || "").toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+
+        // Fórmulas fijas sueldo municipal real
+        const FORMULA_SUELDO = {
+            basico: 1041071.32,
+            antiguedad: 239446.40,
+            coeficienteAportes: 0.174227, // IPS + IOMA (17.4227% de aportes jubilatorios y asistenciales)
+            valorHoraBruta: 8773.86,
+            bonoRopa: 131000.00
+        };
+
+        // Catálogo de parámetros para préstamos conocidos (para aplicar amortización francesa exacta si se encuentran en el CSV)
+        const LOAN_CATALOG = {
+            "fomento": {
+                original: 2300000.00,
+                tna: 0.54,
+                totalCuotas: 24,
+                refMonth: { year: 2026, month: 6 },
+                refDeuda: 1343633.68,
+                refRemainingCuotas: 14,
+                vencimientoLabel: "Julio 2027",
+                cuotaRef: 130081.24
+            },
+            "personal": {
+                original: 500000.00,
+                tna: 0.79,
+                totalCuotas: 12,
+                refMonth: { year: 2026, month: 6 },
+                refDeuda: 415356.95,
+                refRemainingCuotas: 9,
+                vencimientoLabel: "Febrero 2027",
+                cuotaRef: 61350.00
+            }
+        };
+
+        // Estado Reactivo Centralizado
+        let state = {
+            transactions: [],        // Todos los registros parseados del CSV
+            filteredTransactions: [],// Registros filtrados por mes
+            months: [],             // Lista de meses disponibles en el CSV
+            selectedMonth: "",      // Mes en visualización
+            usdRate: 1425,          // Tipo de cambio por defecto
+            usdTax: 50,             // Impuesto país/RG en %
+            activeHistoryTab: "cashflow", // Gráfico histórico seleccionado: 'cashflow' o 'visarel'
+            
+            // Simulación
+            simulatedSalaryActive: false,
+            simulatedHours: 14,
+            simulatedBonoRopa: true,
+            
+            simulatedCancelledSubs: [], // IDs de servicios cancelados en la simulación
+            mostrarBajasReales: false,
+            searchQuery: ""
+        };
+
+        // --- 2. DATOS DE SIMULACIÓN (MOCK DATA) ---
+        // Se carga si falla la red o si es la primera apertura local
+        const MOCK_CSV_DATA = `Mes Vencimiento,Categoria,Comercio / Detalle,Cuota Nro,De Cuotas,Debe ARS,Haber ARS,Debe USD,Haber USD
+enero 2026,Cuotas,PROVINCIA COMPRAS MOTOROLA,15,18,"$39.512,11",,"$0,00",
+enero 2026,Cuotas,MERPAGO ELECTRONICAFLA,8,12,"$41.666,58",,"$0,00",
+enero 2026,Cuotas,PROVINCIA COMPRAS TE,4,18,"$20.585,00",,"$0,00",
+enero 2026,Cuotas,MERPAGO BOXSHOWS,3,3,"$19.166,66",,"$0,00",
+enero 2026,Cuotas,MERPAGO FILOSHARK,2,6,"$6.767,91",,"$0,00",
+enero 2026,Cuotas,MERPAGO MERCADOLIBRE,2,3,"$78.427,33",,"$0,00",
+enero 2026,Cuotas,MERPAGO MERCADOLIBRE,2,3,"$32.999,52",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$37.980,00",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,COMUNIDAD FUTUROCK,-,-,"$6.000,00",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,Netflix com,-,-,"$14.999,00",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,BBVA SEGUROS,-,-,"$17.540,59",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$46.734,00",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,ADOBE,-,-,"$29.935,40",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,MAPFRE SEGUROS,-,-,"$4.751,97",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,GOOGLE YouTube (varios),-,-,"$8.249,00",,"$0,00",
+enero 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+enero 2026,Herramientas Digitales USD,SUNO INC.,-,-,"$0,00",,"$10,00",
+enero 2026,Herramientas Digitales USD,MIDJOURNEY INC.,-,-,"$0,00",,"$10,00",
+enero 2026,Herramientas Digitales USD,MISTERHORSE.COM,-,-,"$0,00",,"$19,90",
+enero 2026,Herramientas Digitales USD,GOOGLE Google One,-,-,"$0,00",,"$1,99",
+enero 2026,Otros Gastos / Eventuales,FACEBK,-,-,"$12.350,00",,"$0,00",
+enero 2026,Otros Gastos / Eventuales,IMP ASSIST,-,-,"$5.340,00",,"$0,00",
+enero 2026,Impuestos y Cargos,IMP. SELLOS / IVA / IIBB / RG 5617,-,-,"$45.120,50",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - SERVICIO ELECTRICO,-,-,"$42.150,00",,"$0,00",
+enero 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - TELEFONIA / INTERNET,-,-,"$28.120,00",,"$0,00",
+enero 2026,Ingresos,Sueldo Neto,-,-,,"$1.140.500,00",,"$0,00"
+enero 2026,Ingresos,Extras,-,-,,"$15.000,00",,"$0,00"
+enero 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+enero 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+febrero 2026,Cuotas,PROVINCIA COMPRAS MOTOROLA,16,18,"$39.512,11",,"$0,00",
+febrero 2026,Cuotas,MERPAGO ELECTRONICAFLA,9,12,"$41.666,58",,"$0,00",
+febrero 2026,Cuotas,PROVINCIA COMPRAS TE,5,18,"$20.585,00",,"$0,00",
+febrero 2026,Cuotas,MERPAGO FILOSHARK,3,6,"$6.767,91",,"$0,00",
+febrero 2026,Cuotas,MERPAGO MERCADOLIBRE,3,3,"$32.999,52",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$37.980,00",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,COMUNIDAD FUTUROCK,-,-,"$6.000,00",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,Netflix com,-,-,"$14.999,00",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,BBVA SEGUROS,-,-,"$17.540,59",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$46.734,00",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,ADOBE,-,-,"$29.935,40",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,MAPFRE SEGUROS,-,-,"$4.751,97",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,GOOGLE YouTube (varios),-,-,"$8.249,00",,"$0,00",
+febrero 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+febrero 2026,Herramientas Digitales USD,SUNO INC.,-,-,"$0,00",,"$10,00",
+febrero 2026,Herramientas Digitales USD,MIDJOURNEY INC.,-,-,"$0,00",,"$10,00",
+febrero 2026,Herramientas Digitales USD,MISTERHORSE.COM,-,-,"$0,00",,"$19,90",
+febrero 2026,Herramientas Digitales USD,GOOGLE Google One,-,-,"$0,00",,"$1,99",
+febrero 2026,Otros Gastos / Eventuales,FACEBK,-,-,"$18.250,00",,"$0,00",
+febrero 2026,Otros Gastos / Eventuales,IMP ASSIST,-,-,"$5.340,00",,"$0,00",
+febrero 2026,Impuestos y Cargos,IMP. SELLOS / IVA / IIBB / RG 5617,-,-,"$52.180,00",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - SERVICIO ELECTRICO,-,-,"$48.150,00",,"$0,00",
+febrero 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - TELEFONIA / INTERNET,-,-,"$27.900,00",,"$0,00",
+febrero 2026,Ingresos,Sueldo Neto,-,-,,"$1.060.000,00",,"$0,00"
+febrero 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+febrero 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+febrero 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+marzo 2026,Cuotas,PROVINCIA COMPRAS MOTOROLA,17,18,"$39.512,11",,"$0,00",
+marzo 2026,Cuotas,MERPAGO ELECTRONICAFLA,10,12,"$41.666,58",,"$0,00",
+marzo 2026,Cuotas,PROVINCIA COMPRAS TE,6,18,"$20.585,00",,"$0,00",
+marzo 2026,Cuotas,MERPAGO FILOSHARK,4,6,"$6.767,91",,"$0,00",
+marzo 2026,Cuotas,MERPAGO THONETVANDER,2,12,"$47.087,31",,"$0,00",
+marzo 2026,Cuotas,MERPAGO MERCADOLIBRE,2,6,"$23.666,66",,"$0,00",
+marzo 2026,Cuotas,DLO ADMITPRUEBA,1,6,"$31.950,00",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,COMUNIDAD FUTUROCK,-,-,"$6.000,00",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,BBVA SEGUROS,-,-,"$17.540,59",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$46.734,00",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,ADOBE,-,-,"$29.935,40",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,Netflix com,-,-,"$14.999,00",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,MAPFRE SEGUROS,-,-,"$4.751,97",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,GOOGLE YouTube (varios),-,-,"$8.249,00",,"$0,00",
+marzo 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+marzo 2026,Herramientas Digitales USD,SUNO INC.,-,-,"$0,00",,"$10,00",
+marzo 2026,Herramientas Digitales USD,MIDJOURNEY INC.,-,-,"$0,00",,"$10,00",
+marzo 2026,Herramientas Digitales USD,MISTERHORSE.COM,-,-,"$0,00",,"$19,90",
+marzo 2026,Herramientas Digitales USD,GOOGLE Google One,-,-,"$0,00",,"$1,99",
+marzo 2026,Otros Gastos / Eventuales,FACEBK,-,-,"$93.195,00",,"$0,00",
+marzo 2026,Otros Gastos / Eventuales,IMP ASSIST,-,-,"$6.343,00",,"$0,00",
+marzo 2026,Impuestos y Cargos,IMP. SELLOS / IVA / IIBB / RG 5617,-,-,"$67.323,83",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - SERVICIO ELECTRICO,-,-,"$58.878,21",,"$0,00",
+marzo 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - TELEFONIA / INTERNET,-,-,"$31.078,97",,"$0,00",
+marzo 2026,Ingresos,Sueldo Neto,-,-,,"$1.205.999,42",,"$0,00"
+marzo 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+marzo 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+marzo 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+abril 2026,Cuotas,PROVINCIA COMPRAS MOTOROLA,18,18,"$39.512,11",,"$0,00",
+abril 2026,Cuotas,MERPAGO ELECTRONICAFLA,11,12,"$41.666,58",,"$0,00",
+abril 2026,Cuotas,PROVINCIA COMPRAS TE,7,18,"$20.585,00",,"$0,00",
+abril 2026,Cuotas,MERPAGO FILOSHARK,5,6,"$6.767,91",,"$0,00",
+abril 2026,Cuotas,MERPAGO THONETVANDER,3,12,"$47.087,31",,"$0,00",
+abril 2026,Cuotas,MERPAGO MERCADOLIBRE,3,6,"$23.666,66",,"$0,00",
+abril 2026,Cuotas,DLO ADMITPRUEBA,2,6,"$31.950,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,COMUNIDAD FUTUROCK,-,-,"$6.000,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,BBVA SEGUROS,-,-,"$17.540,59",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$46.734,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,ADOBE,-,-,"$29.935,40",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,MERPAGO FUTUROCK,-,-,"$7.000,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,PROVINCIA VIDA,-,-,"$9.784,26",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,NETFLIX.COM,-,-,"$14.999,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,MERPAGO MELI,-,-,"$18.399,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,MAPFRE SEGUROS,-,-,"$4.751,97",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,GOOGLE YouTube (varios),-,-,"$8.249,00",,"$0,00",
+abril 2026,Herramientas Digitales USD,XAI LLC,-,-,"$0,00",,"$30,00",
+abril 2026,Herramientas Digitales USD,MIDJOURNEY INC.,-,-,"$0,00",,"$10,00",
+abril 2026,Herramientas Digitales USD,GOOGLE Google One,-,-,"$0,00",,"$19,99",
+abril 2026,Herramientas Digitales USD,SUNO INC.,-,-,"$0,00",,"$10,00",
+abril 2026,Herramientas Digitales USD,MISTERHORSE.COM,-,-,"$0,00",,"$19,90",
+abril 2026,Otros Gastos / Eventuales,FACEBK,-,-,"$19.704,34",,"$0,00",
+abril 2026,Otros Gastos / Eventuales,IMP ASSIST,-,-,"$6.533,00",,"$0,00",
+abril 2026,Impuestos y Cargos,IMP. SELLOS / IVA / IIBB / RG 5617,-,-,"$104.928,21",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - SERVICIO ELECTRICO,-,-,"$64.739,66",,"$0,00",
+abril 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - TELEFONIA / INTERNET,-,-,"$28.674,31",,"$0,00",
+abril 2026,Ingresos,Sueldo Neto,-,-,,"$1.478.817,02",,"$0,00"
+abril 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+abril 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+abril 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+mayo 2026,Cuotas,MERPAGO ELECTRONICAFLA,12,12,"$41.666,58",,"$0,00",
+mayo 2026,Cuotas,PROVINCIA COMPRAS TE,8,18,"$20.585,00",,"$0,00",
+mayo 2026,Cuotas,MERPAGO FILOSHARK,6,6,"$6.767,91",,"$0,00",
+mayo 2026,Cuotas,MERPAGO THONETVANDER,4,12,"$47.087,31",,"$0,00",
+mayo 2026,Cuotas,MERPAGO MERCADOLIBRE,4,6,"$23.666,66",,"$0,00",
+mayo 2026,Cuotas,DLO ADMITPRUEBA,3,6,"$31.950,00",,"$0,00",
+mayo 2026,Cuotas,MERPAGO LFBAZAR,1,6,"$7.446,95",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,COMUNIDAD FUTUROCK,-,-,"$6.000,00",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,BBVA SEGUROS,-,-,"$18.101,87",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$48.098,99",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,ADOBE,-,-,"$29.935,40",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,MERPAGO FUTUROCK,-,-,"$7.000,00",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,PROVINCIA VIDA,-,-,"$10.926,38",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,Netflix com,-,-,"$22.648,49",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,MERPAGO MELI,-,-,"$18.399,00",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,MAPFRE SEGUROS,-,-,"$4.751,97",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,MERPAGO MAX,-,-,"$15.228,43",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,GOOGLE YouTube (varios),-,-,"$15.598,00",,"$0,00",
+mayo 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+mayo 2026,Herramientas Digitales USD,MIDJOURNEY INC.,-,-,"$0,00",,"$10,00",
+mayo 2026,Herramientas Digitales USD,GOOGLE Google One,-,-,"$0,00",,"$19,99",
+mayo 2026,Herramientas Digitales USD,SUNO INC.,-,-,"$0,00",,"$10,00",
+mayo 2026,Herramientas Digitales USD,MISTERHORSE.COM,-,-,"$0,00",,"$19,90",
+mayo 2026,Otros Gastos / Eventuales,IMP ASSIST,-,-,"$13.660,00",,"$0,00",
+mayo 2026,Otros Gastos / Eventuales,FACEBK CXGZCHH732,-,-,"$2.195,41",,"$0,00",
+mayo 2026,Otros Gastos / Eventuales,MERPAGO JUANMANUELRU,-,-,"$39.849,00",,"$0,00",
+mayo 2026,Impuestos y Cargos,IMP. SELLOS / IVA / IIBB / RG 5617,-,-,"$131.113,34",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - SERVICIO ELECTRICO,-,-,"$44.959,86",,"$0,00",
+mayo 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - TELEFONIA / INTERNET,-,-,"$25.708,72",,"$0,00",
+mayo 2026,Ingresos,Sueldo Neto,-,-,,"$1.271.995,63",,"$0,00"
+mayo 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+mayo 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+mayo 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+junio 2026,Cuotas,PROVINCIA COMPRAS TE,9,18,"$20.585,00",,"$0,00",
+junio 2026,Cuotas,MERPAGO THONETVANDER,5,12,"$47.087,31",,"$0,00",
+junio 2026,Cuotas,MERPAGO MERCADOLIBRE,5,6,"$23.666,66",,"$0,00",
+junio 2026,Cuotas,DLO ADMITPRUEBA,4,6,"$31.950,00",,"$0,00",
+junio 2026,Cuotas,MERPAGO LFBAZAR,2,6,"$7.446,95",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,COMUNIDAD FUTUROCK,-,-,"$6.000,00",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,BBVA SEGUROS,-,-,"$18.629,85",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$49.738,99",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,ADOBE,-,-,"$29.935,40",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,MERPAGO FUTUROCK,-,-,"$7.000,00",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,PROVINCIA VIDA,-,-,"$11.245,86",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,NETFLIX,-,-,"$22.948,47",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,MERPAGO MELI,-,-,"$18.399,00",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,MAPFRE SEGUROS,-,-,"$4.751,97",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,MERPAGO MAX,-,-,"$8.122,73",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,GOOGLE YouTube,-,-,"$15.598,00",,"$0,00",
+junio 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+junio 2026,Herramientas Digitales USD,GOOGLE Google One,-,-,"$0,00",,"$19,99",
+junio 2026,Herramientas Digitales USD,SUNO INC.,-,-,"$0,00",,"$10,00",
+junio 2026,Herramientas Digitales USD,MIDJOURNEY INC.,-,-,"$0,00",,"$10,00",
+junio 2026,Herramientas Digitales USD,MISTERHORSE.COM,-,-,"$0,00",,"$19,90",
+junio 2026,Impuestos y Cargos,IMP. SELLOS / IVA / IIBB / RG 5617,-,-,"$59.328,08",,"$0,00",
+junio 2026,Gastos Fijos / Suscripciones,COOPERATIVA DE ELECTRICIDAD - TELEFONIA / INTERNET,-,-,"$25.708,72",,"$0,00",
+junio 2026,Ingresos,Sueldo Neto,-,-,,"$1.280.500,00",,"$0,00"
+junio 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+junio 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+junio 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+julio 2026,Cuotas,PROVINCIA COMPRAS TE,10,18,"$20.585,00",,"$0,00",
+julio 2026,Cuotas,MERPAGO THONETVANDER,6,12,"$47.087,31",,"$0,00",
+julio 2026,Cuotas,MERPAGO MERCADOLIBRE,6,6,"$23.666,66",,"$0,00",
+julio 2026,Cuotas,DLO ADMITPRUEBA,5,6,"$31.950,00",,"$0,00",
+julio 2026,Cuotas,MERPAGO LFBAZAR,3,6,"$7.446,95",,"$0,00",
+julio 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+julio 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$49.738,99",,"$0,00",
+julio 2026,Gastos Fijos / Suscripciones,ADOBE,-,-,"$29.935,40",,"$0,00",
+julio 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+julio 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+julio 2026,Ingresos,Sueldo Neto,-,-,,"$1.280.500,00",,"$0,00"
+julio 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+julio 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+julio 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+agosto 2026,Cuotas,PROVINCIA COMPRAS TE,11,18,"$20.585,00",,"$0,00",
+agosto 2026,Cuotas,MERPAGO THONETVANDER,7,12,"$47.087,31",,"$0,00",
+agosto 2026,Cuotas,DLO ADMITPRUEBA,6,6,"$31.950,00",,"$0,00",
+agosto 2026,Cuotas,MERPAGO LFBAZAR,4,6,"$7.446,95",,"$0,00",
+agosto 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+agosto 2026,Gastos Fijos / Suscripciones,CLARO DEB AUT,-,-,"$49.738,99",,"$0,00",
+agosto 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+agosto 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+agosto 2026,Ingresos,Sueldo Neto,-,-,,"$1.280.500,00",,"$0,00"
+agosto 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+agosto 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+agosto 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+septiembre 2026,Cuotas,PROVINCIA COMPRAS TE,12,18,"$20.585,00",,"$0,00",
+septiembre 2026,Cuotas,MERPAGO THONETVANDER,8,12,"$47.087,31",,"$0,00",
+septiembre 2026,Cuotas,MERPAGO LFBAZAR,5,6,"$7.446,95",,"$0,00",
+septiembre 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+septiembre 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+septiembre 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+septiembre 2026,Ingresos,Sueldo Neto,-,-,,"$1.280.500,00",,"$0,00"
+septiembre 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+septiembre 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+septiembre 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+octubre 2026,Cuotas,PROVINCIA COMPRAS TE,13,18,"$20.585,00",,"$0,00",
+octubre 2026,Cuotas,MERPAGO THONETVANDER,9,12,"$47.087,31",,"$0,00",
+octubre 2026,Cuotas,MERPAGO LFBAZAR,6,6,"$7.446,95",,"$0,00",
+octubre 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+octubre 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+octubre 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+octubre 2026,Ingresos,Sueldo Neto,-,-,,"$1.280.500,00",,"$0,00"
+octubre 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+octubre 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+octubre 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+noviembre 2026,Cuotas,PROVINCIA COMPRAS TE,14,18,"$20.585,00",,"$0,00",
+noviembre 2026,Cuotas,MERPAGO THONETVANDER,10,12,"$47.087,31",,"$0,00",
+noviembre 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+noviembre 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+noviembre 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+noviembre 2026,Ingresos,Sueldo Neto,-,-,,"$1.280.500,00",,"$0,00"
+noviembre 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+noviembre 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+noviembre 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"
+diciembre 2026,Cuotas,PROVINCIA COMPRAS TE,15,18,"$20.585,00",,"$0,00",
+diciembre 2026,Cuotas,MERPAGO THONETVANDER,11,12,"$47.087,31",,"$0,00",
+diciembre 2026,Gastos Fijos / Suscripciones,UNICEF,-,-,"$56.970,00",,"$0,00",
+diciembre 2026,Gastos Fijos / Suscripciones,FEDERACION PAT,-,-,"$43.126,00",,"$0,00",
+diciembre 2026,Herramientas Digitales USD,GROK XAI,-,-,"$0,00",,"$30,00",
+diciembre 2026,Ingresos,Sueldo Neto,-,-,,"$1.280.500,00",,"$0,00"
+diciembre 2026,Ingresos,Extras,-,-,,"$0,00",,"$0,00"
+diciembre 2026,Gastos,Prestamo 1,-,-,"$0,00",,"$0,00"
+diciembre 2026,Gastos,Prestamo 2,-,-,"$0,00",,"$0,00"`;
+
+        // --- 3. FUNCIONES DE PARSEO Y AYUDA ---
+
+        const MESES_MAP = {
+            'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+            'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12
+        };
+
+        // Convierte "mayo 2026" a objeto comparable
+        function parseMesKey(mesKey) {
+            if (!mesKey) return { year: 9999, month: 12 };
+            const parts = mesKey.toLowerCase().trim().split(/\s+/);
+            if (parts.length >= 2) {
+                const monthName = parts[0];
+                const year = parseInt(parts[1]) || 2026;
+                const month = MESES_MAP[monthName] || 1;
+                return { year, month };
+            }
+            return { year: 2026, month: 1 };
+        }
+
+
+
+        // Obtiene el mes por defecto dinámicamente basado en la fecha actual
+        function getDefaultMonth(monthsList) {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonthIndex = now.getMonth();
+            const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const currentMonthName = `${monthNames[currentMonthIndex]} ${currentYear}`;
+
+            if (monthsList.includes(currentMonthName)) {
+                return currentMonthName;
+            } else if (monthsList.includes("junio 2026")) {
+                return "junio 2026";
+            } else if (monthsList.length > 0) {
+                return monthsList[monthsList.length - 1]; // Último mes disponible cronológicamente
+            }
+            return "";
+        }
+
+        // Calcula el estado de amortización y deuda de los préstamos para un mes seleccionado, extrayéndolos del CSV
+        function getDynamicLoans(mesKey) {
+            // Encontrar todos los préstamos únicos en el CSV
+            const loanNames = [];
+            state.transactions.forEach(t => {
+                const cat = cleanStr(t.categoria);
+                if (cat.includes("pr") && cat.includes("stamo")) {
+                    const name = t.detalle;
+                    if (name && !loanNames.includes(name)) {
+                        loanNames.push(name);
+                    }
+                }
+            });
+
+            const S = parseMesKey(mesKey);
+
+            return loanNames.map(name => {
+                const allTxs = state.transactions.filter(t => {
+                    const cat = cleanStr(t.categoria);
+                    return (cat.includes("pr") && cat.includes("stamo")) && t.detalle === name;
+                });
+
+                // Ordenar cronológicamente
+                allTxs.sort((a, b) => {
+                    const pA = parseMesKey(a.mesVencimiento);
+                    const pB = parseMesKey(b.mesVencimiento);
+                    if (pA.year !== pB.year) return pA.year - pB.year;
+                    return pA.month - pB.month;
+                });
+
+                const latestTx = allTxs[allTxs.length - 1];
+                if (!latestTx) return null;
+
+                // Intentar recuperar el total de cuotas del catálogo o del CSV
+                let totalCuotas = null;
+                const matchedKey = Object.keys(LOAN_CATALOG).find(key => cleanStr(name).includes(key));
+                const catalogInfo = matchedKey ? LOAN_CATALOG[matchedKey] : null;
+
+                const foundDeCuotas = allTxs.find(tx => tx.deCuotas !== null && !isNaN(tx.deCuotas));
+                if (catalogInfo) {
+                    totalCuotas = catalogInfo.totalCuotas;
+                } else if (foundDeCuotas) {
+                    totalCuotas = foundDeCuotas.deCuotas;
+                } else {
+                    // Fallbacks basados en el nombre
+                    if (cleanStr(name).includes("nacion")) {
+                        totalCuotas = 36;
+                    } else if (cleanStr(name).includes("mercado") || cleanStr(name).includes("libre")) {
+                        totalCuotas = 12;
+                    } else {
+                        totalCuotas = 24; // Default general
+                    }
+                }
+
+                // Obtener el número de cuota más reciente
+                const lastCuotaNro = latestTx.cuotaNro || allTxs.length;
+                const lastMonth = parseMesKey(latestTx.mesVencimiento);
+
+                const diffMonths = (S.year - lastMonth.year) * 12 + (S.month - lastMonth.month);
+                const projectedCuotaNro = lastCuotaNro + diffMonths;
+
+                let cuotaAPagar = 0;
+                let remainingCuotas = 0;
+                let deuda = 0;
+                let amortization = 0;
+
+                if (projectedCuotaNro <= 0) {
+                    remainingCuotas = totalCuotas;
+                    cuotaAPagar = 0;
+                    amortization = 0;
+                    deuda = totalCuotas * latestTx.debeARS;
+                } else if (projectedCuotaNro > totalCuotas) {
+                    remainingCuotas = 0;
+                    cuotaAPagar = 0;
+                    amortization = 100;
+                    deuda = 0;
+                } else {
+                    remainingCuotas = totalCuotas - projectedCuotaNro + 1;
+                    amortization = ((projectedCuotaNro - 1) / totalCuotas) * 100;
+
+                    // Buscar si hay una transacción real en el mes consultado
+                    const realTxForMonth = allTxs.find(t => t.mesVencimiento === mesKey);
+                    if (realTxForMonth) {
+                        cuotaAPagar = realTxForMonth.debeARS;
+                    } else {
+                        cuotaAPagar = latestTx.debeARS;
+                    }
+
+                    // Calcular saldo de deuda (deuda)
+                    if (catalogInfo) {
+                        const tna = catalogInfo.tna;
+                        const original = catalogInfo.original;
+                        const refDeuda = catalogInfo.refDeuda;
+                        const refMonth = catalogInfo.refMonth;
+                        const cuotaRef = catalogInfo.cuotaRef;
+                        
+                        const diffRef = (S.year - refMonth.year) * 12 + (S.month - refMonth.month);
+                        const i = tna / 12;
+                        let tempDeuda = refDeuda;
+                        
+                        if (diffRef > 0) {
+                            for (let m = 0; m < diffRef; m++) {
+                                const interest = tempDeuda * i;
+                                const principal = cuotaRef - interest;
+                                tempDeuda = Math.max(0, tempDeuda - principal);
+                            }
+                        } else if (diffRef < 0) {
+                            const steps = Math.abs(diffRef);
+                            for (let m = 0; m < steps; m++) {
+                                tempDeuda = (tempDeuda + cuotaRef) / (1 + i);
+                            }
+                        }
+                        deuda = tempDeuda;
+                        amortization = ((1 - deuda / original) * 100);
+                    } else {
+                        // Método lineal para otros préstamos
+                        deuda = remainingCuotas * cuotaAPagar;
+                    }
+                }
+
+                // Generar vencimientoLabel dinámico
+                let vencimientoLabel = "Desconocido";
+                if (catalogInfo) {
+                    vencimientoLabel = catalogInfo.vencimientoLabel;
+                } else {
+                    const monthsToVenc = totalCuotas - lastCuotaNro;
+                    const vYear = lastMonth.year + Math.floor((lastMonth.month + monthsToVenc) / 12);
+                    const vMonthIdx = (lastMonth.month + monthsToVenc) % 12 || 12;
+                    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    vencimientoLabel = `${monthNames[vMonthIdx - 1]} ${vYear}`;
+                }
+
+                return {
+                    nombre: name,
+                    cuotaAPagar,
+                    totalCuotas,
+                    remainingCuotas,
+                    paidCuotas: totalCuotas - remainingCuotas,
+                    deuda,
+                    amortization: Math.min(100, Math.max(0, amortization)),
+                    vencimientoLabel,
+                    tna: catalogInfo ? catalogInfo.tna : 0.0
+                };
+            }).filter(x => x !== null);
+        }
+
+        // Renderiza dinámicamente las tarjetas de préstamos en el DOM
+        function renderLoans(dynamicLoans) {
+            const container = document.getElementById('loans-cards-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            dynamicLoans.forEach(loan => {
+                const isFinished = loan.remainingCuotas === 0;
+                const isNotStarted = loan.cuotaAPagar === 0 && loan.remainingCuotas === loan.totalCuotas;
+                
+                let badgeHTML = '';
+                let progressColor = '';
+                let borderClass = 'border-slate-800';
+                let bgClass = 'bg-slate-950/60';
+                
+                if (isFinished) {
+                    badgeHTML = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black px-2 py-0.5 rounded-md">FINALIZADO</span>`;
+                    progressColor = 'bg-emerald-500';
+                    borderClass = 'border-emerald-500/30';
+                    bgClass = 'bg-emerald-950/5';
+                } else if (isNotStarted) {
+                    badgeHTML = `<span class="bg-slate-800 text-slate-400 border border-slate-700 text-[9px] font-black px-2 py-0.5 rounded-md">NO INICIADO</span>`;
+                    progressColor = 'bg-slate-750';
+                } else {
+                    badgeHTML = `<span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] font-black px-2 py-0.5 rounded-md">TNA ${(loan.tna * 100).toFixed(1)}%</span>`;
+                    progressColor = loan.amortization >= 80 ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-600 to-indigo-400';
+                }
+                
+                const card = document.createElement('div');
+                card.className = `${bgClass} rounded-2xl p-4 border ${borderClass} flex flex-col justify-between space-y-4 transition-all`;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                ${badgeHTML}
+                                <h4 class="text-sm font-extrabold text-white mt-1.5">${loan.nombre}</h4>
+                            </div>
+                            <p class="text-[9px] text-slate-500 font-bold">Vto: ${loan.vencimientoLabel}</p>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                                <span>Amortización Completada</span>
+                                <span class="${isFinished ? 'text-emerald-400' : 'text-indigo-400'}">${loan.amortization.toFixed(1)}%</span>
+                            </div>
+                            <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+                                <div class="h-full ${progressColor}" style="width: ${loan.amortization}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 gap-2 text-[11px] border-t border-slate-800/40 pt-3">
+                            <div>
+                                <p class="text-slate-500">Monto Original</p>
+                                <p class="font-bold text-slate-300">${formatARS(loan.original)}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-slate-500">Deuda Pendiente</p>
+                                <p class="font-bold text-white">${formatARS(loan.deuda)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-800/40 flex justify-between items-center text-xs">
+                        <div>
+                            <p class="text-[9px] text-slate-500 uppercase font-black">Cuota Mensual</p>
+                            <p class="text-sm font-black text-white">${formatARS(loan.cuotaAPagar)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[9px] text-slate-500 uppercase font-black">Plazo Restante</p>
+                            <p class="text-xs text-slate-200">${isFinished ? '0 Cuotas' : `${loan.remainingCuotas} Cuotas`}</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Calcula y renderiza el Radar de Salud Financiera y Alertas Inteligentes
+        function updateFinancialHealth(m, dynamicLoans) {
+            // 1. DTI (Debt-to-Income)
+            const totalDeudasMes = m.cuotasTarjetaARS + m.cuotasPrestamosARS;
+            const dti = m.ingresosVisualizar > 0 ? (totalDeudasMes / m.ingresosVisualizar * 100) : 0;
+            
+            document.getElementById('dti-gauge-value').innerText = `${dti.toFixed(0)}%`;
+            
+            const gaugeArc = document.getElementById('dti-gauge-arc');
+            const circleLength = 213.6;
+            const offset = circleLength - (circleLength * Math.min(100, dti)) / 100;
+            gaugeArc.style.strokeDashoffset = offset;
+            
+            const statusEl = document.getElementById('dti-gauge-status');
+            if (dti < 30) {
+                statusEl.innerText = "SALUDABLE";
+                statusEl.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
+                gaugeArc.setAttribute('stroke', '#10b981');
+            } else if (dti <= 50) {
+                statusEl.innerText = "PRECAUCIÓN";
+                statusEl.className = "bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
+                gaugeArc.setAttribute('stroke', '#f59e0b');
+            } else {
+                statusEl.innerText = "ALTO RIESGO";
+                statusEl.className = "bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider";
+                gaugeArc.setAttribute('stroke', '#f43f5e');
+            }
+
+            // 2. Colchón de Paz (Survival Buffer)
+            const sliderAhorros = document.getElementById('slider-ahorros');
+            const ahorros = parseFloat(sliderAhorros.value);
+            document.getElementById('slider-ahorros-display').innerText = formatARS(ahorros);
+            
+            const gastosFijos = m.egresosTotales; 
+            const bufferMonths = gastosFijos > 0 ? (ahorros / gastosFijos) : 99.9;
+            
+            const bufferValEl = document.getElementById('buffer-months-value');
+            const bufferStatusEl = document.getElementById('buffer-status-value');
+            
+            if (gastosFijos === 0) {
+                bufferValEl.innerText = "∞ Meses";
+                bufferValEl.className = "text-2xl font-black text-emerald-400";
+                bufferStatusEl.innerText = "Sin gastos comprometidos";
+                bufferStatusEl.className = "text-[9px] font-bold text-emerald-400 mt-0.5";
+            } else {
+                bufferValEl.innerText = `${bufferMonths.toFixed(1)} ${bufferMonths === 1 ? 'Mes' : 'Meses'}`;
+                if (bufferMonths < 3) {
+                    bufferValEl.className = "text-2xl font-black text-rose-400";
+                    bufferStatusEl.innerText = "Vulnerable (Mínimo recomendado: 3)";
+                    bufferStatusEl.className = "text-[9px] font-bold text-rose-400 mt-0.5";
+                } else if (bufferMonths <= 6) {
+                    bufferValEl.className = "text-2xl font-black text-amber-400";
+                    bufferStatusEl.innerText = "Estable (Tranquilidad Media)";
+                    bufferStatusEl.className = "text-[9px] font-bold text-amber-400 mt-0.5";
+                } else {
+                    bufferValEl.className = "text-2xl font-black text-emerald-400";
+                    bufferStatusEl.innerText = "Sólido (Paz Financiera Alta)";
+                    bufferStatusEl.className = "text-[9px] font-bold text-emerald-400 mt-0.5";
+                }
+            }
+
+            // 3. Eficiencia de Ahorro
+            const rateValEl = document.getElementById('savings-rate-value');
+            const rateBarEl = document.getElementById('savings-rate-progress');
+            const rateStatusEl = document.getElementById('savings-rate-status');
+            
+            rateValEl.innerText = `${m.tasaAhorro.toFixed(0)}%`;
+            rateBarEl.style.width = `${Math.min(100, Math.max(0, m.tasaAhorro))}%`;
+            
+            if (m.tasaAhorro < 0) {
+                rateValEl.className = "text-2xl font-black text-rose-400";
+                rateBarEl.className = "h-full bg-rose-500";
+                rateStatusEl.innerText = "Déficit mensual de caja";
+                rateStatusEl.className = "text-[8px] text-rose-400 font-bold";
+            } else if (m.tasaAhorro < 10) {
+                rateValEl.className = "text-2xl font-black text-amber-400";
+                rateBarEl.className = "h-full bg-amber-500";
+                rateStatusEl.innerText = "Ahorro bajo (Meta: 20%)";
+                rateStatusEl.className = "text-[8px] text-amber-400 font-bold";
+            } else if (m.tasaAhorro < 20) {
+                rateValEl.className = "text-2xl font-black text-blue-400";
+                rateBarEl.className = "h-full bg-blue-500";
+                rateStatusEl.innerText = "Buen ritmo (Meta cercana)";
+                rateStatusEl.className = "text-[8px] text-blue-400 font-bold";
+            } else {
+                rateValEl.className = "text-2xl font-black text-emerald-400";
+                rateBarEl.className = "h-full bg-emerald-500";
+                rateStatusEl.innerText = "Ahorro sobresaliente";
+                rateStatusEl.className = "text-[8px] text-emerald-400 font-bold";
+            }
+
+            // 4. Alertas Inteligentes
+            const alertsContainer = document.getElementById('health-alerts-container');
+            if (!alertsContainer) return;
+            alertsContainer.innerHTML = '';
+            
+            const alerts = [];
+
+            if (m.superavit < 0) {
+                alerts.push({
+                    type: 'danger',
+                    text: `Déficit Financiero: Tus compromisos mensuales superan tus ingresos simulados por <strong>${formatARS(Math.abs(m.superavit))}</strong>. Evalúa desactivar suscripciones o ajustar horas extras.`
+                });
+            } else if (m.tasaAhorro >= 20) {
+                alerts.push({
+                    type: 'success',
+                    text: `Tasa de Ahorro Excelente: Ahorras el <strong>${m.tasaAhorro.toFixed(0)}%</strong> de tus ingresos. Cumples holgadamente con las metas de creación de riqueza.`
+                });
+            }
+
+            if (m.cuotasTarjetaARS > m.ingresosVisualizar * 0.35) {
+                alerts.push({
+                    type: 'danger',
+                    text: `Apalancamiento Crítico: Las cuotas de tarjeta consumen el <strong>${((m.cuotasTarjetaARS / m.ingresosVisualizar) * 100).toFixed(0)}%</strong> de tu ingreso. Modera los consumos corrientes.`
+                });
+            }
+
+            const digitalUSDConImp = m.usdCostoConImpuestos;
+            if (m.suscripcionesARS > 60000 || digitalUSDConImp > 50000) {
+                alerts.push({
+                    type: 'warning',
+                    text: `Fuga Silenciosa Digital: Destinas <strong>${formatARS(m.suscripcionesARS + digitalUSDConImp)}</strong> a plataformas digitales. Audita las suscripciones en dólares.`
+                });
+            }
+
+            // Libertad de deudas
+            let maxCardMonths = 0;
+            state.filteredTransactions.forEach(t => {
+                const cat = cleanStr(t.categoria);
+                if (cat.includes("cuota") && t.cuotaNro && t.deCuotas) {
+                    const remaining = t.deCuotas - t.cuotaNro;
+                    if (remaining > maxCardMonths) maxCardMonths = remaining;
+                }
+            });
+
+            let maxLoanMonths = 0;
+            dynamicLoans.forEach(loan => {
+                if (loan.remainingCuotas > maxLoanMonths) maxLoanMonths = loan.remainingCuotas;
+            });
+
+            const maxDeudaMonths = Math.max(maxCardMonths, maxLoanMonths);
+            
+            if (maxDeudaMonths > 0) {
+                const S = parseMesKey(state.selectedMonth);
+                let libYear = S.year;
+                let libMonth = S.month + maxDeudaMonths;
+                while (libMonth > 12) {
+                    libMonth -= 12;
+                    libYear += 1;
+                }
+                const monthNamesLong = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                const libMonthName = monthNamesLong[libMonth - 1];
+                
+                const totalLiberado = (maxCardMonths > 0 ? m.cuotasTarjetaARS : 0) + (maxLoanMonths > 0 ? m.cuotasPrestamosARS : 0);
+                
+                alerts.push({
+                    type: 'info',
+                    text: `Plan de Desendeudamiento: En <strong>${libMonthName} de ${libYear}</strong> (${maxDeudaMonths} meses) extinguirás tus pasivos programados, liberando <strong>${formatARS(totalLiberado)}/mes</strong>.`
+                });
+            } else {
+                alerts.push({
+                    type: 'success',
+                    text: `Libertad de Pasivos: ¡Cero deudas activas en este período! Tu capacidad de capitalización es del 100%.`
+                });
+            }
+
+            alerts.forEach(alert => {
+                const div = document.createElement('div');
+                let colorClass = '';
+                let bgClass = '';
+                let icon = '';
+                
+                if (alert.type === 'danger') {
+                    colorClass = 'text-rose-400 border-rose-500/20';
+                    bgClass = 'bg-rose-500/5';
+                    icon = '🚨';
+                } else if (alert.type === 'warning') {
+                    colorClass = 'text-amber-400 border-amber-500/20';
+                    bgClass = 'bg-amber-500/5';
+                    icon = '⚠️';
+                } else if (alert.type === 'success') {
+                    colorClass = 'text-emerald-400 border-emerald-500/20';
+                    bgClass = 'bg-emerald-500/5';
+                    icon = '✅';
+                } else {
+                    colorClass = 'text-indigo-400 border-indigo-500/20';
+                    bgClass = 'bg-indigo-500/5';
+                    icon = '📅';
+                }
+                
+                div.className = `p-2.5 rounded-xl border text-[10px] leading-relaxed flex items-start gap-2 ${colorClass} ${bgClass}`;
+                div.innerHTML = `<span class="text-xs shrink-0">${icon}</span> <span>${alert.text}</span>`;
+                alertsContainer.appendChild(div);
+            });
+        }
+
+        // Formatea números a pesos argentinos
+        function formatARS(val) {
+            return new Intl.NumberFormat('es-AR', {
+                style: 'currency',
+                currency: 'ARS',
+                minimumFractionDigits: 2
+            }).format(val);
+        }
+
+        // Formatea números a dólares estadounidenses
+        function formatUSD(val) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            }).format(val);
+        }
+
+        // Limpia importes de forma segura tolerando formato español (coma decimal) o inglés (punto decimal)
+        function parseCleanNumber(val) {
+            if (!val) return 0;
+            let str = val.toString().trim();
+            // Quitar el signo de dólar y espacios
+            str = str.replace(/[\$\s]/g, '');
+            
+            if (str.includes(',')) {
+                // Formato con coma decimal (ej: 1.234,56 o 1234,56)
+                str = str.replace(/\./g, ''); // Quitar puntos de miles
+                str = str.replace(',', '.');  // Reemplazar coma por punto decimal
+            } else {
+                // Formato con punto decimal (ej: 1,234.56 o 1234.56)
+                str = str.replace(/,/g, '');  // Quitar comas de miles
+            }
+            
+            let num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        }
+
+        // --- 4. MOTOR DE DATOS E HISTORIAL ---
+
+        // Procesa el CSV crudo y estructura el estado
+        function parseCSVData(csvText) {
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                transformHeader: function(h) {
+                    // Remover BOM (Byte Order Mark) y espacios en blanco al inicio/final
+                    return h.replace(/^\uFEFF/, '').trim();
+                },
+                complete: function(results) {
+                    try {
+                        if (!results.data || results.data.length === 0) {
+                            throw new Error("El archivo seleccionado está vacío.");
+                        }
+
+                        const firstRow = results.data[0];
+                        const keys = Object.keys(firstRow).map(k => k.trim());
+
+                        // Validar si el archivo no se pudo separar en columnas
+                        if (keys.length <= 1) {
+                            throw new Error("No se pudieron separar las columnas. Verifica si tu CSV usa comas (,) o punto y coma (;) como delimitador.");
+                        }
+
+                        // Verificar si existe la columna de fechas/meses
+                        const hasMesCol = keys.some(k => k.toLowerCase().includes('mes') || k.toLowerCase().includes('vencimiento'));
+                        if (!hasMesCol) {
+                            throw new Error("No se encontró una columna de 'Mes Vencimiento'.");
+                        }
+                            
+                        state.transactions = results.data.map((row, idx) => {
+                            const getVal = (colName) => {
+                                const target = cleanStr(colName);
+                                const foundKey = Object.keys(row).find(k => cleanStr(k) === target);
+                                return foundKey ? row[foundKey] : '';
+                            };
+
+                            const mesVenc = (getVal('Mes Vencimiento') || getVal('Mes') || '').trim();
+                            const cat = (getVal('Categoria') || '').trim();
+                            const det = (getVal('Comercio / Detalle') || getVal('Detalle') || getVal('Comercio') || '').trim();
+                            const cuota = parseInt(getVal('Cuota')) || parseInt(getVal('Cuota Nro')) || null;
+                            const totalCuotas = parseInt(getVal('NroDe Cuotas')) || parseInt(getVal('De Cuotas')) || null;
+
+                            let debeUSDVal = parseCleanNumber(getVal('Debe USD'));
+                            let haberUSDVal = parseCleanNumber(getVal('Haber USD'));
+
+                            // Autocorrección: si se registró un gasto en dólares bajo el Haber USD por error, lo pasamos a Debe USD
+                            const normalizedCat = cleanStr(cat);
+                            if (haberUSDVal > 0 && !normalizedCat.includes("ingreso") && parseCleanNumber(getVal('Haber ARS')) === 0) {
+                                debeUSDVal = haberUSDVal;
+                                haberUSDVal = 0;
+                            }
+
+                            return {
+                                id: `tx-${idx}`,
+                                mesVencimiento: mesVenc,
+                                categoria: cat,
+                                detalle: det,
+                                cuotaNro: cuota,
+                                deCuotas: totalCuotas,
+                                debeARS: parseCleanNumber(getVal('Debe ARS')),
+                                haberARS: parseCleanNumber(getVal('Haber ARS')),
+                                debeUSD: debeUSDVal,
+                                haberUSD: haberUSDVal
+                            };
+                        }).filter(tx => tx.mesVencimiento);
+
+                        if (state.transactions.length === 0) {
+                            throw new Error("El formato es correcto, pero no se encontraron transacciones válidas en las filas.");
+                        }
+
+                        // Extraer meses únicos ordenados cronológicamente
+                        const uniqueMonths = [...new Set(state.transactions.map(t => t.mesVencimiento))];
+                        state.months = uniqueMonths.sort((a, b) => {
+                            const parseA = parseMesKey(a);
+                            const parseB = parseMesKey(b);
+                            if (parseA.year !== parseB.year) return parseA.year - parseB.year;
+                            return parseA.month - parseB.month;
+                        });
+
+                        // Seleccionar mes conveniente
+                        state.selectedMonth = getDefaultMonth(state.months);
+
+                        // Inicializar simulador con valores estándar
+                        resetSimSalaryValues();
+
+                        // Guardar en localStorage para respaldo offline
+                        localStorage.setItem('cached_transactions', JSON.stringify(state.transactions));
+                        
+                        populateMonthSelector();
+                        updateDashboard();
+                    } catch (err) {
+                        console.error("Error al procesar el archivo CSV:", err);
+                        showNotification("Error en formato de datos: " + err.message, "error");
+                    }
+                },
+                error: function(err) {
+                    console.error("Error de PapaParse:", err);
+                    showNotification("Error al leer archivo: " + err.message, "error");
+                }
+            });
+        }
+
+        // Restablece los sliders del simulador de haberes a los valores estándar de Mayo/Junio 2026
+        function resetSimSalaryValues() {
+            state.simulatedHours = 14;
+            state.simulatedBonoRopa = true;
+            
+            document.getElementById('slider-horas').value = state.simulatedHours;
+            document.getElementById('val-horas-display').innerText = `${state.simulatedHours} Hs.`;
+            document.getElementById('chk-ropa-bono').checked = state.simulatedBonoRopa;
+        }
+
+        // Animación de rotación del ícono de sincronización
+        function setSyncingState(isSyncing) {
+            const btn = document.getElementById('btn-sync');
+            const icon = document.getElementById('sync-icon');
+            if (isSyncing) {
+                btn.disabled = true;
+                icon.classList.add('animate-spin');
+            } else {
+                btn.disabled = false;
+                icon.classList.remove('animate-spin');
+            }
+        }
+
+        // --- 5. RENDERIZACIÓN DE VISTAS Y CALCULADORA CONTABLE ---
+
+        // Crea las opciones en el dropdown de meses
+        function populateMonthSelector() {
+            const selector = document.getElementById('month-selector');
+            selector.innerHTML = '';
+            state.months.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.innerText = m.charAt(0).toUpperCase() + m.slice(1);
+                if (m === state.selectedMonth) opt.selected = true;
+                selector.appendChild(opt);
+            });
+        }
+
+        // Calcula métricas para el mes activo y sucursales simuladas
+        function getDashboardMetrics() {
+            let ingresosReales = 0;
+            let sueldoNetoFicha = 0;
+            let extrasFicha = 0;
+            
+            let cuotasTarjetaARS = 0;
+            let suscripcionesARS = 0;
+            let impuestosARS = 0;
+            let eventualesARS = 0;
+            
+            let usdCostoDirecto = 0;
+            let usdCostoConImpuestos = 0;
+            let ahorroSuscripcionesSimulado = 0;
+
+            // Filtrar las transacciones del mes seleccionado
+            state.filteredTransactions = state.transactions.filter(t => t.mesVencimiento === state.selectedMonth);
+
+            // 1. Clasificar transacciones del periodo
+            state.filteredTransactions.forEach(t => {
+                const cat = cleanStr(t.categoria);
+                const det = cleanStr(t.detalle);
+                const isLoan = cat.includes("pr") && cat.includes("stamo");
+
+                // Ingresos
+                if (cat.includes("ingreso") || t.haberARS_total > 0) {
+                    ingresosReales += t.haberARS_total;
+                    if (det.includes("sueldo")) {
+                        sueldoNetoFicha += t.haberARS_total;
+                    }
+                    if (det.includes("extra")) {
+                        extrasFicha += t.haberARS_total;
+                    }
+                }
+                
+                // Préstamos (se manejan en getDynamicLoans, no se duplican aquí)
+                else if (isLoan) {
+                    return;
+                }
+                
+                // Cuotas tarjeta (por categoría o por tener cuotas especificadas)
+                else if (cat.includes("cuota") || t.cuotaNro !== null) {
+                    cuotasTarjetaARS += t.debeARS_total;
+                }
+                
+                // Suscripciones y Servicios Fijos (Servicios, Seguros, Suscripciones, etc.)
+                else if (cat.includes("suscripcion") || cat.includes("fijo") || cat.includes("digitales") || cat.includes("usd") || cat.includes("servicio") || cat.includes("seguro")) {
+                    const isUSD = cat.includes("digitales") || cat.includes("usd") || t.debeUSD > 0;
+                    let costoFichaARS = t.debeARS_total;
+                    
+                    if (isUSD) {
+                        const usdAmount = t.debeUSD > 0 ? t.debeUSD : (t.debeARS / state.usdRate);
+                        usdCostoDirecto += usdAmount;
+                        usdCostoConImpuestos += t.debeUSD > 0 ? (t.debeUSD * state.usdRate * (1 + (state.usdTax / 100))) : costoFichaARS;
+                    }
+
+                    // Verificar si está marcado como cancelado simulado en la interfaz
+                    if (state.simulatedCancelledSubs.includes(t.detalle)) {
+                        ahorroSuscripcionesSimulado += costoFichaARS;
+                    } else {
+                        suscripcionesARS += costoFichaARS;
+                    }
+                }
+                
+                // Impuestos y Cargos
+                else if (cat.includes("impuesto") || cat.includes("cargo") || cat.includes("tasa")) {
+                    impuestosARS += t.debeARS_total;
+                }
+                
+                // Fallback General: Todo lo demás que represente un egreso va a Eventuales (sin duplicar clasificados)
+                else if (t.debeARS_total > 0) {
+                    eventualesARS += t.debeARS_total;
+                }
+            });
+
+            // 2. Resolver amortización fija de Préstamos de forma dinámica
+            const dynamicLoans = getDynamicLoans(state.selectedMonth);
+            const cuotasPrestamosARS = dynamicLoans.reduce((acc, p) => acc + p.cuotaAPagar, 0);
+
+            // 3. Procesar Simulación de Sueldo Municipal (Calculamos el desglose siempre reactivo)
+            const sueldoBruto = FORMULA_SUELDO.basico + FORMULA_SUELDO.antiguedad + (state.simulatedHours * FORMULA_SUELDO.valorHoraBruta);
+            const aportesVal = sueldoBruto * FORMULA_SUELDO.coeficienteAportes;
+            let liquido = sueldoBruto - aportesVal;
+            if (state.simulatedBonoRopa) {
+                liquido += FORMULA_SUELDO.bonoRopa;
+            }
+
+            const sueldoSimuladoDesglose = {
+                basico: FORMULA_SUELDO.basico,
+                antiguedad: FORMULA_SUELDO.antiguedad,
+                aportes: aportesVal,
+                neto: liquido
+            };
+
+            let ingresosVisualizar = ingresosReales;
+            if (state.simulatedSalaryActive) {
+                // Reemplazamos la porción de Sueldo Neto real por la porción simulada
+                ingresosVisualizar = (ingresosReales - sueldoNetoFicha) + liquido;
+            }
+
+            // 4. Calcular Compromisos Fijos Totales
+            const egresosTotales = cuotasTarjetaARS + suscripcionesARS + impuestosARS + eventualesARS + cuotasPrestamosARS;
+            
+            // Superávit
+            const superavit = ingresosVisualizar - egresosTotales;
+            const tasaAhorro = ingresosVisualizar > 0 ? ((superavit / ingresosVisualizar) * 100) : 0;
+
+            // 5. Deuda viva total consolidada (Cuotas de tarjeta pendientes + Deuda viva de Préstamos) calculada dinámicamente
+            const deudaPrestamos = dynamicLoans.reduce((acc, p) => acc + p.deuda, 0);
+            
+            // Deuda pendiente de tarjeta: Sumamos las cuotas restantes futuras del mes actual en adelante
+            let deudaTarjetasFutura = 0;
+            state.filteredTransactions.forEach(t => {
+                const cat = cleanStr(t.categoria);
+                const isLoan = cat.includes("pr") && cat.includes("stamo");
+                if ((cat.includes("cuota") || t.cuotaNro !== null) && t.cuotaNro && t.deCuotas && !isLoan) {
+                    const cuotasRestantes = t.deCuotas - t.cuotaNro;
+                    deudaTarjetasFutura += cuotasRestantes * t.debeARS_total;
+                }
+            });
+            const deudaTotalConsolidada = deudaPrestamos + deudaTarjetasFutura + cuotasTarjetaARS;
+
+            return {
+                ingresosReales,
+                ingresosVisualizar,
+                sueldoNetoFicha,
+                extrasFicha,
+                cuotasTarjetaARS,
+                suscripcionesARS,
+                impuestosARS,
+                eventualesARS,
+                cuotasPrestamosARS,
+                egresosTotales,
+                superavit,
+                tasaAhorro,
+                deudaTotalConsolidada,
+                deudaPrestamos,
+                deudaTarjetasFutura,
+                usdCostoDirecto,
+                usdCostoConImpuestos,
+                ahorroSuscripcionesSimulado,
+                sueldoSimuladoDesglose
+            };
+        }
+
+        // Recalcula los totales pesificados (debeARS_total / haberARS_total) para todas las transacciones usando la cotización configurada
+        function recalculatePesifiedTotals() {
+            state.transactions.forEach(t => {
+                // Egresos (Debe): si tiene valor en USD, pesificar con el tipo de cambio + impuesto tarjeta
+                t.debeARS_total = t.debeARS;
+                if (t.debeUSD > 0) {
+                    t.debeARS_total += t.debeUSD * state.usdRate * (1 + (state.usdTax / 100));
+                }
+
+                // Ingresos (Haber): si tiene valor en USD, pesificar a tipo de cambio directo
+                t.haberARS_total = t.haberARS;
+                if (t.haberUSD > 0) {
+                    t.haberARS_total += t.haberUSD * state.usdRate;
+                }
+            });
+        }
+
+        // Actualiza el DOM y regenera gráficos
+        function updateDashboard() {
+            recalculatePesifiedTotals();
+            const m = getDashboardMetrics();
+
+            // Actualizar KPIs de Cabecera
+            document.getElementById('kpi-ingresos').innerText = formatARS(m.ingresosVisualizar);
+            document.getElementById('kpi-ingresos-detail').innerText = `Ficha: ${formatARS(m.ingresosReales)}`;
+            
+            document.getElementById('kpi-egresos').innerText = formatARS(m.egresosTotales);
+            document.getElementById('kpi-deuda').innerText = formatARS(m.deudaTotalConsolidada);
+            document.getElementById('kpi-deuda-detail').innerText = `Créditos: ${formatARS(m.deudaPrestamos)}`;
+            
+            document.getElementById('kpi-usd').innerText = formatUSD(m.usdCostoDirecto);
+            document.getElementById('kpi-usd-ars').innerText = `${formatARS(m.usdCostoConImpuestos)} (c/imp)`;
+
+            // Formateo Condicional del Superávit
+            const superavitEl = document.getElementById('kpi-superavit');
+            const superavitCard = document.getElementById('kpi-superavit-card');
+            const superavitIcon = document.getElementById('kpi-superavit-icon-container');
+            const superavitPct = document.getElementById('kpi-superavit-pct');
+
+            superavitEl.innerText = formatARS(m.superavit);
+            superavitPct.innerText = `${m.tasaAhorro.toFixed(1)}% del ingreso neto`;
+
+            if (m.superavit >= 0) {
+                superavitEl.className = "text-2xl sm:text-3xl font-black text-emerald-400 mt-2";
+                superavitCard.className = "glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-[#0e1424] to-emerald-950/15 border-emerald-500/25";
+                superavitIcon.className = "text-emerald-400 bg-emerald-500/10 p-1.5 rounded-lg";
+            } else {
+                superavitEl.className = "text-2xl sm:text-3xl font-black text-rose-400 mt-2";
+                superavitCard.className = "glass-panel glass-panel-hover rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-[#0e1424] to-rose-950/15 border-rose-500/25 animate-pulse";
+                superavitIcon.className = "text-rose-400 bg-rose-500/10 p-1.5 rounded-lg";
+            }
+
+            // Mostrar Banner de simulación si aplica
+            const hasSim = state.simulatedSalaryActive || state.simulatedCancelledSubs.length > 0;
+            document.getElementById('sim-alert-banner').classList.toggle('hidden', !hasSim);
+
+            // Actualizar Desglose del Simulador Municipal
+            document.getElementById('desglose-basico').innerText = formatARS(m.sueldoSimuladoDesglose.basico);
+            document.getElementById('desglose-antiguedad').innerText = formatARS(m.sueldoSimuladoDesglose.antiguedad);
+            document.getElementById('desglose-aportes').innerText = `-${formatARS(m.sueldoSimuladoDesglose.aportes)}`;
+            document.getElementById('desglose-neto').innerText = formatARS(m.sueldoSimuladoDesglose.neto);
+
+            // Actualizar Ahorro de Suscripciones
+            document.getElementById('ahorro-simulado-total').innerText = formatARS(m.ahorroSuscripcionesSimulado);
+            document.getElementById('costo-suscripciones-total').innerText = formatARS(m.suscripcionesARS);
+
+            // Re-renderizar listas y tablas dinámicas
+            renderSuscripcionesList();
+            renderCuotasList();
+            renderTransactionsTable();
+            
+            // Renderizar préstamos dinámicos y salud financiera
+            const dynamicLoans = getDynamicLoans(state.selectedMonth);
+            renderLoans(dynamicLoans);
+            updateFinancialHealth(m, dynamicLoans);
+
+            // Actualizar Gráficos de Chart.js
+            updateCharts(m);
+            
+            // Actualizar badges e información de año
+            const selectedYear = parseMesKey(state.selectedMonth).year;
+            document.getElementById('title-year-badge').innerText = `Libro Diario ${selectedYear}`;
+            document.getElementById('footer-year').innerText = `2026 - ${new Date().getFullYear()}`;
+        }
+
+        // Dibuja la lista interactiva de suscripciones
+        function renderSuscripcionesList() {
+            const container = document.getElementById('subs-list-container');
+            container.innerHTML = '';
+
+            // Filtrar transacciones del mes que correspondan a Suscripciones o Herramientas USD
+            const subs = state.filteredTransactions.filter(t => {
+                const cat = cleanStr(t.categoria);
+                return cat.includes("suscripcion") || cat.includes("fijo") || cat.includes("digitales") || cat.includes("usd") || cat.includes("servicio") || cat.includes("seguro");
+            });
+
+            if (subs.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No hay suscripciones registradas en este mes.</p>`;
+                return;
+            }
+
+            subs.forEach(s => {
+                const isUSD = cleanStr(s.categoria).includes("usd") || cleanStr(s.categoria).includes("digitales") || s.debeUSD > 0;
+                let costoDirectoARS = s.debeARS;
+                let totalConImpuestos = s.debeARS;
+
+                if (isUSD) {
+                    const usdVal = s.debeUSD > 0 ? s.debeUSD : (s.debeARS / state.usdRate);
+                    costoDirectoARS = usdVal * state.usdRate;
+                    totalConImpuestos = costoDirectoARS * (1 + (state.usdTax / 100));
+                }
+
+                // Identificar si está marcado como cancelado real o simulado
+                const isBajaReal = s.debeARS === 0 && s.debeUSD === 0;
+                if (isBajaReal && !state.mostrarBajasReales) return; // Filtrar bajas reales si el toggle está apagado
+
+                const isCancelledSim = state.simulatedCancelledSubs.includes(s.detalle);
+
+                // Crear tarjeta
+                const card = document.createElement('div');
+                
+                let cardClass = "flex justify-between items-center p-2.5 rounded-xl border transition-all select-none ";
+                if (isBajaReal) {
+                    cardClass += "bg-emerald-950/10 border-emerald-950/30 opacity-60 cursor-not-allowed";
+                } else if (isCancelledSim) {
+                    cardClass += "bg-blue-950/15 border-blue-950/40 opacity-70 hover:opacity-90 cursor-pointer hover:border-blue-900";
+                } else {
+                    cardClass += "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 cursor-pointer hover:bg-slate-900";
+                }
+                card.className = cardClass;
+
+                // Evento de simulación de cancelación
+                if (!isBajaReal) {
+                    card.addEventListener('click', () => {
+                        const idx = state.simulatedCancelledSubs.indexOf(s.detalle);
+                        if (idx > -1) {
+                            state.simulatedCancelledSubs.splice(idx, 1);
+                        } else {
+                            state.simulatedCancelledSubs.push(s.detalle);
+                        }
+                        updateDashboard();
+                    });
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-4 h-4 rounded flex items-center justify-center border text-[9px] font-black ${
+                            isCancelledSim || isBajaReal
+                                ? isBajaReal ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-blue-600 border-blue-500 text-white'
+                                : 'border-slate-700 text-transparent'
+                        }">
+                            ✓
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-white text-xs leading-none">${s.detalle}</span>
+                                ${isUSD ? `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[8px] font-bold px-1 rounded">USD ${(s.debeUSD || 0).toFixed(2)}</span>` : ''}
+                            </div>
+                            <span class="text-[9px] text-slate-500">${s.categoria}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-bold ${isCancelledSim || isBajaReal ? 'text-slate-500 line-through' : 'text-slate-200'}">
+                            ${formatARS(totalConImpuestos)}
+                        </p>
+                        ${isBajaReal ? '<span class="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-1.5 py-0.5 rounded block mt-0.5">Baja Histórica</span>' : ''}
+                        ${!isBajaReal && isCancelledSim ? '<span class="bg-blue-500/15 text-blue-400 text-[8px] font-bold px-1.5 py-0.5 rounded block mt-0.5">Simulación Baja</span>' : ''}
+                        ${!isBajaReal && !isCancelledSim && isUSD ? `<span class="text-[8px] text-slate-500 block leading-none mt-0.5">c/impuestos</span>` : ''}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Renderiza el desglose de cuotas de tarjeta vigentes
+        function renderCuotasList() {
+            const container = document.getElementById('cuotas-list-container');
+            container.innerHTML = '';
+
+            const cuotas = state.filteredTransactions.filter(t => {
+                const cat = cleanStr(t.categoria);
+                const isLoan = cat.includes("pr") && cat.includes("stamo");
+                return (cat.includes("cuota") || t.cuotaNro !== null) && !isLoan;
+            });
+
+            if (cuotas.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No hay compras en cuotas en este mes.</p>`;
+                return;
+            }
+
+            cuotas.forEach(c => {
+                const pctProgress = c.deCuotas > 0 ? ((c.cuotaNro / c.deCuotas) * 100) : 100;
+                
+                // Color progresivo de barra de progreso
+                let progressColor = "bg-blue-500";
+                if (pctProgress >= 80) progressColor = "bg-amber-500";
+                if (pctProgress === 100) progressColor = "bg-emerald-500";
+
+                const isVencimientoProximo = c.deCuotas - c.cuotaNro <= 1;
+
+                const item = document.createElement('div');
+                item.className = "bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 space-y-1.5";
+                item.innerHTML = `
+                    <div class="flex justify-between items-center text-xs">
+                        <div>
+                            <p class="font-bold text-white text-xs">${c.detalle}</p>
+                            ${isVencimientoProximo 
+                                ? `<p class="text-[9px] text-amber-400 flex items-center gap-1 font-bold"><span class="w-1 h-1 bg-amber-400 rounded-full animate-ping"></span> Próximo a finalizar</p>`
+                                : `<p class="text-[9px] text-slate-500">Amortizando cuotas mensuales</p>`
+                            }
+                        </div>
+                        <div class="text-right">
+                            <p class="font-extrabold text-slate-200">${formatARS(c.debeARS_total)}</p>
+                            <p class="text-[9px] text-slate-500 font-bold">
+                                ${c.debeUSD > 0 ? `<span class="text-blue-400 font-bold">USD ${(c.debeUSD || 0).toFixed(2)}</span> • ` : ''}
+                                Cuota ${c.cuotaNro} de ${c.deCuotas}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden flex">
+                        <div class="h-full ${progressColor}" style="width: ${pctProgress}%"></div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Renderiza el Libro Diario/Tabla de transacciones del mes
+        function renderTransactionsTable() {
+            const body = document.getElementById('table-transactions-body');
+            body.innerHTML = '';
+
+            let filtered = state.filteredTransactions;
+            
+            // Buscar por texto
+            if (state.searchQuery) {
+                const query = state.searchQuery.toLowerCase();
+                filtered = filtered.filter(t => 
+                    t.categoria.toLowerCase().includes(query) || 
+                    t.detalle.toLowerCase().includes(query)
+                );
+            }
+
+            if (filtered.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-500 italic">
+                            No se encontraron registros que coincidan con la búsqueda o el mes seleccionado.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-900/40 transition-colors border-b border-slate-800/40";
+                
+                const cuotaTexto = t.cuotaNro ? `${t.cuotaNro} / ${t.deCuotas}` : '-';
+                
+                let catBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300">${t.categoria}</span>`;
+                const catStr = cleanStr(t.categoria);
+                if (catStr.includes("ingreso")) {
+                    catBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${t.categoria}</span>`;
+                } else if (catStr.includes("cuota")) {
+                    catBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-400 border border-sky-500/20">${t.categoria}</span>`;
+                } else if (catStr.includes("suscripcion") || catStr.includes("fijo")) {
+                    catBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">${t.categoria}</span>`;
+                } else if (catStr.includes("usd") || catStr.includes("digitales")) {
+                    catBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">${t.categoria}</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-300">${catBadge}</td>
+                    <td class="p-3 font-bold text-white text-xs">${t.detalle}</td>
+                    <td class="p-3 text-center font-mono font-bold text-slate-400">${cuotaTexto}</td>
+                    <td class="p-3 text-right font-bold text-rose-400">${t.debeARS_total > 0 ? formatARS(t.debeARS_total) : '-'}</td>
+                    <td class="p-3 text-right font-bold text-emerald-400">${t.haberARS_total > 0 ? formatARS(t.haberARS_total) : '-'}</td>
+                    <td class="p-3 text-right font-mono font-bold text-blue-400">${t.debeUSD > 0 ? formatUSD(t.debeUSD) : '-'}</td>
+                    <td class="p-3 text-right font-mono font-bold text-emerald-400">${t.haberUSD > 0 ? formatUSD(t.haberUSD) : '-'}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        // --- 6. MOTOR GRÁFICO (CHART.JS INTEGRATION) ---
+
+        let charts = {
+            cashflow: null,
+            categories: null,
+            projection: null
+        };
+
+        // Inicializa y actualiza todos los gráficos
+        function updateCharts(m) {
+            const labels = [];
+            const datasets = [];
+
+            const selectedYear = parseMesKey(state.selectedMonth).year;
+            
+            // Generar los 12 meses del año seleccionado
+            const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const allMonthsOfSelectedYear = monthNames.map(mName => `${mName} ${selectedYear}`);
+            const shortLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+            // Determinar hasta qué mes tenemos datos reales registrados en el CSV para este año
+            let maxMonthIndexWithData = -1;
+            allMonthsOfSelectedYear.forEach((mKey, idx) => {
+                const hasData = state.transactions.some(t => t.mesVencimiento === mKey);
+                if (hasData) {
+                    maxMonthIndexWithData = idx;
+                }
+            });
+
+            // Si no se encuentra ningún mes con datos para este año, mostrar por defecto hasta el mes actual de la lista
+            if (maxMonthIndexWithData === -1) {
+                maxMonthIndexWithData = 5; // Junio por defecto
+            }
+
+            // 1. Gráfico 1: Historial de Caja (Flujo de Caja o Relación de Caja Visa)
+            if (state.activeHistoryTab === 'cashflow') {
+                document.getElementById('history-chart-title').innerText = `Curva de Flujo de Caja Histórico (${selectedYear})`;
+                document.getElementById('history-chart-desc').innerText = "Visualiza la relación mensual de tus ingresos cobrados contra el total de obligaciones.";
+                
+                const ingresosData = [];
+                const egresosData = [];
+                const ahorrosData = [];
+
+                allMonthsOfSelectedYear.forEach((mesKey, idx) => {
+                    labels.push(shortLabels[idx]);
+                    
+                    if (idx > maxMonthIndexWithData) {
+                        // Dejar puntos vacíos (null) para meses futuros sin datos para que no se caiga la curva a cero
+                        ingresosData.push(null);
+                        egresosData.push(null);
+                        ahorrosData.push(null);
+                        return;
+                    }
+
+                    let ingTotal = 0;
+                    let egrTotal = 0;
+                    let hasSueldoFicha = 0;
+
+                    const tMonth = state.transactions.filter(t => t.mesVencimiento === mesKey);
+                    tMonth.forEach(t => {
+                        const cat = cleanStr(t.categoria);
+                        const det = cleanStr(t.detalle);
+                        const isLoan = cat.includes("pr") && cat.includes("stamo");
+
+                        if (cat.includes("ingreso") || t.haberARS_total > 0) {
+                            ingTotal += t.haberARS_total;
+                            if (det.includes("sueldo")) {
+                                hasSueldoFicha += t.haberARS_total;
+                            }
+                        } else if (isLoan) {
+                            return;
+                        } else if (cat.includes("cuota") || t.cuotaNro !== null) {
+                            egrTotal += t.debeARS_total;
+                        } else if (cat.includes("suscripcion") || cat.includes("fijo") || cat.includes("digitales") || cat.includes("usd") || cat.includes("servicio") || cat.includes("seguro")) {
+                            if (mesKey === state.selectedMonth && state.simulatedCancelledSubs.includes(t.detalle)) {
+                                // Ignorar en egresos si se simula baja
+                            } else {
+                                egrTotal += t.debeARS_total;
+                            }
+                        } else if (cat.includes("impuesto") || cat.includes("cargo") || cat.includes("tasa")) {
+                            egrTotal += t.debeARS_total;
+                        } else if (t.debeARS_total > 0) {
+                            egrTotal += t.debeARS_total;
+                        }
+                    });
+
+                    // Añadir cuotas fijas de préstamos a los egresos históricos calculados de forma dinámica
+                    const dynamicLoansProj = getDynamicLoans(mesKey);
+                    egrTotal += dynamicLoansProj.reduce((acc, p) => acc + p.cuotaAPagar, 0);
+
+                    // Aplicar simulación de sueldo si estamos en el mes seleccionado y el toggle está activo
+                    if (mesKey === state.selectedMonth && state.simulatedSalaryActive) {
+                        const sb = FORMULA_SUELDO.basico + FORMULA_SUELDO.antiguedad + (state.simulatedHours * FORMULA_SUELDO.valorHoraBruta);
+                        const ap = sb * FORMULA_SUELDO.coeficienteAportes;
+                        let liq = sb - ap;
+                        if (state.simulatedBonoRopa) liq += FORMULA_SUELDO.bonoRopa;
+                        ingTotal = (ingTotal - hasSueldoFicha) + liq;
+                    }
+
+                    ingresosData.push(ingTotal);
+                    egresosData.push(egrTotal);
+                    ahorrosData.push(ingTotal - egrTotal);
+                });
+
+                datasets.push({
+                    label: 'Ingresos Netos',
+                    data: ingresosData,
+                    backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                    borderColor: '#10b981',
+                    borderWidth: 1.5,
+                    borderRadius: 6,
+                    order: 2
+                });
+                datasets.push({
+                    label: 'Egresos Comprometidos',
+                    data: egresosData,
+                    backgroundColor: 'rgba(244, 63, 94, 0.75)',
+                    borderColor: '#f43f5e',
+                    borderWidth: 1.5,
+                    borderRadius: 6,
+                    order: 2
+                });
+                datasets.push({
+                    label: 'Superávit Real',
+                    data: ahorrosData,
+                    type: 'line',
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#6366f1',
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.35,
+                    order: 1
+                });
+
+            } else {
+                document.getElementById('history-chart-title').innerText = `Curva de Relación de Caja Histórica (${selectedYear})`;
+                document.getElementById('history-chart-desc').innerText = "Evaluación de tus sueldos oficiales y las oscilaciones críticas de la tarjeta Visa.";
+                
+                const sueldoNetoData = [];
+                const tarjetaVisaData = [];
+
+                allMonthsOfSelectedYear.forEach((mesKey, idx) => {
+                    labels.push(shortLabels[idx]);
+                    
+                    if (idx > maxMonthIndexWithData) {
+                        sueldoNetoData.push(null);
+                        tarjetaVisaData.push(null);
+                        return;
+                    }
+                    
+                    let sueldoVal = 0;
+                    let visaVal = 0;
+
+                    const tMonth = state.transactions.filter(t => t.mesVencimiento === mesKey);
+                    tMonth.forEach(t => {
+                        const cat = cleanStr(t.categoria);
+                        const det = cleanStr(t.detalle);
+                        const isLoan = cat.includes("pr") && cat.includes("stamo");
+                        if (cat.includes("ingreso") && det.includes("sueldo")) {
+                            sueldoVal += t.haberARS_total;
+                        } else if (isLoan) {
+                            return;
+                        } else if (cat.includes("cuota") || t.cuotaNro !== null) {
+                            visaVal += t.debeARS_total;
+                        } else if (cat.includes("suscripcion") || cat.includes("fijo") || cat.includes("digitales") || cat.includes("usd") || cat.includes("servicio") || cat.includes("seguro")) {
+                            if (mesKey === state.selectedMonth && state.simulatedCancelledSubs.includes(t.detalle)) {
+                                // Ignorar si se simula baja
+                            } else {
+                                visaVal += t.debeARS_total;
+                            }
+                        } else if (cat.includes("impuesto") || cat.includes("cargo") || cat.includes("tasa")) {
+                            visaVal += t.debeARS_total;
+                        } else if (t.debeARS_total > 0) {
+                            visaVal += t.debeARS_total;
+                        }
+                    });
+
+                    // Añadir cuotas fijas de préstamos a los egresos del mes
+                    const dynamicLoansProj = getDynamicLoans(mesKey);
+                    visaVal += dynamicLoansProj.reduce((acc, p) => acc + p.cuotaAPagar, 0);
+
+                    // Si no hay sueldo oficial cargado para este mes (ej: meses proyectados), se estima el neto base
+                    if (sueldoVal === 0) {
+                        sueldoVal = FORMULA_SUELDO.basico + FORMULA_SUELDO.antiguedad - ((FORMULA_SUELDO.basico + FORMULA_SUELDO.antiguedad) * FORMULA_SUELDO.coeficienteAportes);
+                    }
+
+                    if (mesKey === state.selectedMonth && state.simulatedSalaryActive) {
+                        const sb = FORMULA_SUELDO.basico + FORMULA_SUELDO.antiguedad + (state.simulatedHours * FORMULA_SUELDO.valorHoraBruta);
+                        const ap = sb * FORMULA_SUELDO.coeficienteAportes;
+                        let liq = sb - ap;
+                        if (state.simulatedBonoRopa) liq += FORMULA_SUELDO.bonoRopa;
+                        sueldoVal = liq;
+                    }
+
+                    sueldoNetoData.push(sueldoVal);
+                    tarjetaVisaData.push(visaVal);
+                });
+
+                datasets.push({
+                    label: 'Neto Cobrado',
+                    data: sueldoNetoData,
+                    type: 'line',
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#10b981',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.3,
+                    fill: true
+                });
+                datasets.push({
+                    label: 'Egresos Comprometidos',
+                    data: tarjetaVisaData,
+                    type: 'line',
+                    borderColor: '#f43f5e',
+                    backgroundColor: 'transparent',
+                    borderWidth: 3,
+                    borderDash: [5, 5],
+                    pointBackgroundColor: '#f43f5e',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.3
+                });
+            }
+
+            const ctxCashflow = document.getElementById('chart-cashflow').getContext('2d');
+            if (charts.cashflow) charts.cashflow.destroy();
+            
+            const chartType = state.activeHistoryTab === 'cashflow' ? 'bar' : 'line';
+            
+            charts.cashflow = new Chart(ctxCashflow, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#94a3b8', font: { family: 'Outfit', size: 10, weight: 'bold' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatARS(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: {
+                                color: '#64748b',
+                                font: { family: 'Outfit', size: 9 },
+                                callback: function(value) { 
+                                    return '$' + (value / 1000).toLocaleString('es-AR', { maximumFractionDigits: 0 }) + 'k'; 
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#64748b', font: { family: 'Outfit', size: 9, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+
+            // 2. Gráfico 2: Distribución de Egresos del Mes (Donut)
+            const ctxCategories = document.getElementById('chart-categories').getContext('2d');
+            if (charts.categories) charts.categories.destroy();
+            charts.categories = new Chart(ctxCategories, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Suscripciones', 'Cuotas Tarjeta', 'Préstamos', 'Impuestos/Cargos', 'Otros Gastos'],
+                    datasets: [{
+                        data: [
+                            m.suscripcionesARS,
+                            m.cuotasTarjetaARS,
+                            m.cuotasPrestamosARS,
+                            m.impuestosARS,
+                            m.eventualesARS
+                        ],
+                        backgroundColor: [
+                            '#6366f1', // Suscripciones (Indigo)
+                            '#3b82f6', // Tarjetas (Blue)
+                            '#8b5cf6', // Préstamos (Purple)
+                            '#eab308', // Impuestos (Yellow)
+                            '#f43f5e'  // Otros (Rose)
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#0a0f1d'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#94a3b8', font: { family: 'Outfit', size: 10, weight: 'bold' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + formatARS(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // 3. Gráfico 3: Cronograma de Pasivos Futuros (Visa + Préstamos)
+            // Se muestran todos los 12 meses del año seleccionado para no perder el contexto anterior/futuro
+            const projLabels = [];
+            const projTarjetaData = [];
+            const projPrestamosData = [];
+
+            allMonthsOfSelectedYear.forEach((mKey, idx) => {
+                projLabels.push(shortLabels[idx]);
+                
+                // Calcular cuota tarjeta del mes correspondiente en el CSV
+                let totalCc = 0;
+                const tMonth = state.transactions.filter(t => t.mesVencimiento === mKey);
+                tMonth.forEach(t => {
+                    const cat = cleanStr(t.categoria);
+                    const isLoan = cat.includes("pr") && cat.includes("stamo");
+                    if ((cat.includes("cuota") || t.cuotaNro !== null) && !isLoan) {
+                        totalCc += t.debeARS_total;
+                    }
+                });
+                projTarjetaData.push(totalCc);
+                
+                // Carga dinámica de la cuota de préstamos de este mes (se proyecta de forma matemática)
+                const dynamicLoansProj = getDynamicLoans(mKey);
+                projPrestamosData.push(dynamicLoansProj.reduce((acc, p) => acc + p.cuotaAPagar, 0));
+            });
+
+            const ctxProjection = document.getElementById('chart-projection').getContext('2d');
+            if (charts.projection) charts.projection.destroy();
+            charts.projection = new Chart(ctxProjection, {
+                type: 'bar',
+                data: {
+                    labels: projLabels,
+                    datasets: [
+                        {
+                            label: 'Préstamos Banco Provincia',
+                            data: projPrestamosData,
+                            backgroundColor: '#8b5cf6',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Resumen Tarjeta Visa',
+                            data: projTarjetaData,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatARS(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            stacked: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: {
+                                color: '#64748b',
+                                font: { family: 'Outfit', size: 9 },
+                                callback: function(value) { 
+                                    return '$' + (value / 1000).toLocaleString('es-AR', { maximumFractionDigits: 0 }) + 'k'; 
+                                }
+                            }
+                        },
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: { color: '#64748b', font: { family: 'Outfit', size: 9, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 7. EVENTOS Y CONTROLADORES DE INTERFAZ ---
+
+        // Sincroniza los datos trayéndolos directamente de Google Sheets
+        function fetchOnlineCSV() {
+            const statusBadge = document.getElementById('sync-status');
+            const sheetUrlInput = document.getElementById('input-sheet-url');
+            
+            let sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdU8AJjkmAzt5mPnZ0ASfi7jnf3xXmTrlHGaan6OewO73W1Xdy9qlxvjAAvCw-jGLgu8IjYCR4EVRd/pub?gid=2113052976&single=true&output=csv";
+            if (sheetUrlInput && sheetUrlInput.value.trim() !== "") {
+                sheetUrl = sheetUrlInput.value.trim();
+            } else {
+                const savedUrl = localStorage.getItem('config_sheet_url');
+                if (savedUrl) sheetUrl = savedUrl;
+            }
+
+            // Guardar url actual en el input
+            if (sheetUrlInput) sheetUrlInput.value = sheetUrl;
+
+            // Estado intermedio de carga
+            statusBadge.className = "bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1";
+            statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span> Conectando...`;
+
+            fetch(sheetUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error("No se pudo obtener el archivo");
+                    return res.text();
+                })
+                .then(csvText => {
+                    parseCSVData(csvText);
+                    statusBadge.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1";
+                    statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Vinculado: Google Sheets`;
+                    
+                    // Guardar la URL en local storage para persistencia
+                    localStorage.setItem('config_sheet_url', sheetUrl);
+                    
+                    showNotification("Sincronizado con Google Sheets en línea con éxito.", "success");
+                })
+                .catch(err => {
+                    console.warn("Error en la conexión con Google Sheets, cargando respaldo local:", err);
+                    
+                    // Fallback a caché local de localStorage
+                    const cached = localStorage.getItem('cached_transactions');
+                    if (cached) {
+                        state.transactions = JSON.parse(cached);
+                        // Recalcular meses
+                        const uniqueMonths = [...new Set(state.transactions.map(t => t.mesVencimiento))];
+                        state.months = uniqueMonths.sort((a, b) => {
+                            const parseA = parseMesKey(a);
+                            const parseB = parseMesKey(b);
+                            if (parseA.year !== parseB.year) return parseA.year - parseB.year;
+                            return parseA.month - parseB.month;
+                        });
+                        state.selectedMonth = getDefaultMonth(state.months);
+                        populateMonthSelector();
+                        updateDashboard();
+                        
+                        statusBadge.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1";
+                        statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Datos Locales (Caché)`;
+                        showNotification("Sin conexión. Cargando últimos datos de la caché local.", "warning");
+                    } else {
+                        // Si no hay internet ni caché, cargar mock data por defecto
+                        parseCSVData(MOCK_CSV_DATA);
+                        statusBadge.className = "bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1";
+                        statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Datos de Simulación`;
+                        showNotification("Sin internet ni caché disponible. Usando datos de simulación.", "info");
+                    }
+                });
+        }
+
+        // Configurar los manejadores de eventos al cargar la ventana
+        window.onload = function() {
+            // Cargar primero tasas de cambio e impuestos guardados para evitar discrepancias de cálculo en la renderización inicial
+            const savedRate = localStorage.getItem('config_usd_rate');
+            const savedTax = localStorage.getItem('config_usd_tax');
+            if (savedRate) {
+                state.usdRate = parseFloat(savedRate);
+                document.getElementById('input-usd-rate').value = savedRate;
+            }
+            if (savedTax) {
+                state.usdTax = parseFloat(savedTax);
+                document.getElementById('input-usd-tax').value = savedTax;
+            }
+
+            // Precargar el link de Google Sheets en el input
+            const savedUrl = localStorage.getItem('config_sheet_url') || "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdU8AJjkmAzt5mPnZ0ASfi7jnf3xXmTrlHGaan6OewO73W1Xdy9qlxvjAAvCw-jGLgu8IjYCR4EVRd/pub?gid=2113052976&single=true&output=csv";
+            const sheetUrlInput = document.getElementById('input-sheet-url');
+            if (sheetUrlInput) sheetUrlInput.value = savedUrl;
+
+            // Sincronización manual en línea desde el formulario
+            const btnSyncOnline = document.getElementById('btn-sync-online');
+            if (btnSyncOnline) {
+                btnSyncOnline.addEventListener('click', () => {
+                    fetchOnlineCSV();
+                    closeDrawer();
+                });
+            }
+
+            // Cargar CSV manual al hacer clic en el botón del Navbar
+            document.getElementById('btn-sync').addEventListener('click', () => {
+                document.getElementById('input-csv-file').click();
+            });
+
+            // Abrir y cerrar panel lateral de configuraciones
+            const drawer = document.getElementById('config-drawer');
+            const drawerContent = drawer.querySelector('div');
+
+            document.getElementById('btn-config').addEventListener('click', () => {
+                drawer.classList.remove('pointer-events-none', 'opacity-0');
+                drawerContent.classList.remove('translate-x-full');
+            });
+
+            function closeDrawer() {
+                drawer.classList.add('pointer-events-none', 'opacity-0');
+                drawerContent.classList.add('translate-x-full');
+            }
+
+            document.getElementById('btn-close-config').addEventListener('click', closeDrawer);
+            drawer.addEventListener('click', (e) => {
+                if (e.target === drawer) closeDrawer();
+            });
+
+            // Guardar configuraciones del Drawer
+            document.getElementById('btn-save-config').addEventListener('click', () => {
+                const rateInput = parseFloat(document.getElementById('input-usd-rate').value);
+                const taxInput = parseFloat(document.getElementById('input-usd-tax').value);
+ 
+                if (!isNaN(rateInput)) state.usdRate = rateInput;
+                if (!isNaN(taxInput)) state.usdTax = taxInput;
+ 
+                // Guardar en localStorage
+                localStorage.setItem('config_usd_rate', state.usdRate);
+                localStorage.setItem('config_usd_tax', state.usdTax);
+ 
+                closeDrawer();
+                updateDashboard();
+                showNotification("Ajustes cambiarios y tributarios actualizados.", "success");
+            });
+
+            // Resetear simulación
+            document.getElementById('btn-reset-cache').addEventListener('click', () => {
+                state.simulatedCancelledSubs = [];
+                state.simulatedSalaryActive = false;
+                resetSimSalaryValues();
+                document.getElementById('toggle-sim-salary').classList.replace('bg-blue-600', 'bg-slate-800');
+                document.getElementById('toggle-sim-salary').firstElementChild.classList.replace('translate-x-5', 'translate-x-0');
+                
+                closeDrawer();
+                updateDashboard();
+                showNotification("Se han restablecido los valores de simulación.", "info");
+            });
+
+            // Cambiar mes seleccionado
+            document.getElementById('month-selector').addEventListener('change', (e) => {
+                state.selectedMonth = e.target.value;
+                updateDashboard();
+            });
+
+            // Cambiar de Pestaña de Gráfico Histórico
+            document.getElementById('btn-tab-cashflow').addEventListener('click', () => {
+                state.activeHistoryTab = 'cashflow';
+                document.getElementById('btn-tab-cashflow').className = "px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all text-white bg-blue-600 shadow-md";
+                document.getElementById('btn-tab-visarel').className = "px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all text-slate-400 hover:text-slate-200";
+                updateDashboard();
+            });
+
+            document.getElementById('btn-tab-visarel').addEventListener('click', () => {
+                state.activeHistoryTab = 'visarel';
+                document.getElementById('btn-tab-visarel').className = "px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all text-white bg-blue-600 shadow-md";
+                document.getElementById('btn-tab-cashflow').className = "px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all text-slate-400 hover:text-slate-200";
+                updateDashboard();
+            });
+
+            // Slider del simulador de horas extras
+            document.getElementById('slider-horas').addEventListener('input', (e) => {
+                state.simulatedHours = parseInt(e.target.value);
+                document.getElementById('val-horas-display').innerText = `${state.simulatedHours} Hs.`;
+                updateDashboard(); // Reactividad inmediata
+            });
+
+            // Slider del simulador de colchón de ahorros acumulados
+            document.getElementById('slider-ahorros').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                document.getElementById('slider-ahorros-display').innerText = formatARS(val);
+                localStorage.setItem('config_savings_colchon', val);
+                
+                const m = getDashboardMetrics();
+                const dynamicLoans = getDynamicLoans(state.selectedMonth);
+                updateFinancialHealth(m, dynamicLoans);
+            });
+
+            // Checkbox bono de ropa
+            document.getElementById('chk-ropa-bono').addEventListener('change', (e) => {
+                state.simulatedBonoRopa = e.target.checked;
+                updateDashboard(); // Reactividad inmediata
+            });
+
+            // Toggle para activar/desactivar simulación de sueldo
+            document.getElementById('toggle-sim-salary').addEventListener('click', () => {
+                state.simulatedSalaryActive = !state.simulatedSalaryActive;
+                const toggle = document.getElementById('toggle-sim-salary');
+                const thumb = toggle.firstElementChild;
+                if (state.simulatedSalaryActive) {
+                    toggle.classList.replace('bg-slate-800', 'bg-blue-600');
+                    thumb.classList.replace('translate-x-0', 'translate-x-5');
+                } else {
+                    toggle.classList.replace('bg-blue-600', 'bg-slate-800');
+                    thumb.classList.replace('translate-x-5', 'translate-x-0');
+                }
+                updateDashboard();
+            });
+
+            // Desactivar simulación global desde el Banner
+            document.getElementById('btn-disable-sim').addEventListener('click', () => {
+                state.simulatedCancelledSubs = [];
+                state.simulatedSalaryActive = false;
+                const toggle = document.getElementById('toggle-sim-salary');
+                toggle.classList.replace('bg-blue-600', 'bg-slate-800');
+                toggle.firstElementChild.classList.replace('translate-x-5', 'translate-x-0');
+                updateDashboard();
+                showNotification("Simulaciones desactivadas.", "info");
+            });
+
+            // Toggle bajas reales históricas
+            document.getElementById('btn-toggle-bajas-reales').addEventListener('click', () => {
+                state.mostrarBajasReales = !state.mostrarBajasReales;
+                const btn = document.getElementById('btn-toggle-bajas-reales');
+                if (state.mostrarBajasReales) {
+                    btn.innerText = "Ocultar suscripciones de baja real histórica";
+                    btn.className = "w-full mt-3 bg-emerald-950/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 py-2 rounded-xl transition-all";
+                } else {
+                    btn.innerText = "Mostrar suscripciones de baja real histórica";
+                    btn.className = "w-full mt-3 bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 py-2 rounded-xl hover:text-white transition-all hover:bg-slate-800";
+                }
+                updateDashboard();
+            });
+
+            // Buscador de la tabla Libro Diario
+            document.getElementById('input-search-table').addEventListener('input', (e) => {
+                state.searchQuery = e.target.value;
+                renderTransactionsTable();
+            });
+
+            // Configurar cargador manual de CSV (Dropzone)
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('input-csv-file');
+
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-blue-500', 'bg-blue-500/5');
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-blue-500', 'bg-blue-500/5');
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-blue-500', 'bg-blue-500/5');
+                const file = e.dataTransfer.files[0];
+                if (file && file.name.endsWith('.csv')) {
+                    handleCSVFile(file);
+                } else {
+                    showNotification("Por favor, sube solo archivos en formato .csv", "error");
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) handleCSVFile(file);
+            });
+
+            // Leer archivo local cargado
+            function handleCSVFile(file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    parseCSVData(evt.target.result);
+                    const statusBadge = document.getElementById('sync-status');
+                    statusBadge.className = "bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1";
+                    statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Archivo CSV Cargado`;
+                    showNotification("Archivo CSV importado localmente con éxito.", "success");
+                    closeDrawer();
+                };
+                reader.readAsText(file, "UTF-8");
+            }
+
+            // Intentar sincronización online al iniciar, con fallbacks automáticos a caché y simulación
+            fetchOnlineCSV();
+
+            // Las tasas de cambio e impuestos ya fueron cargadas al inicio de window.onload
+            
+            // Cargar colchón de ahorros guardado si existe
+            const savedAhorros = localStorage.getItem('config_savings_colchon');
+            if (savedAhorros) {
+                document.getElementById('slider-ahorros').value = savedAhorros;
+            }
+        };
+
+        // --- 8. CENTRO DE NOTIFICACIONES ---
+
+        // Muestra notificaciones flotantes premium
+        function showNotification(msg, type = "info") {
+            const container = document.createElement('div');
+            container.className = "fixed bottom-5 right-5 z-50 pointer-events-none flex flex-col gap-2";
+            
+            // Si ya existe un contenedor de notificaciones en el dom, lo usamos
+            const oldContainer = document.querySelector('.notification-container');
+            const targetContainer = oldContainer || container;
+            if (!oldContainer) {
+                document.body.appendChild(targetContainer);
+                targetContainer.classList.add('notification-container');
+            }
+
+            const toast = document.createElement('div');
+            toast.className = "bg-slate-900 border text-xs font-bold text-white py-3 px-5 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-4 pointer-events-auto max-w-sm";
+            
+            let color = "border-blue-500/30 text-blue-400";
+            let icon = "💡";
+            if (type === "success") {
+                color = "border-emerald-500/30 text-emerald-400";
+                icon = "✓";
+            } else if (type === "error") {
+                color = "border-rose-500/30 text-rose-400";
+                icon = "✕";
+            }
+            
+            toast.className += ` ${color}`;
+            toast.innerHTML = `<span class="text-base">${icon}</span> <span>${msg}</span>`;
+            targetContainer.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-4');
+            }, 10);
+
+            // Ocultar y remover
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
